@@ -42,25 +42,25 @@ about X" and get an actual answer, grounded in your own saved data.
 ## Architecture
 
 ```
-┌─────────────┐     ┌──────────────┐     ┌────────────────────┐
+┌──────────────┐     ┌──────────────┐     ┌────────────────────┐
 │  cron job    │────▶│ ingest.py    │────▶│  bookmarks.sqlite  │
 │ (cookie CLI) │     │ (upserts)    │     │  tables + FTS5 +   │
-└─────────────┘     └──────────────┘     │  vector index      │
+└──────────────┘     └──────────────┘     │  vector index      │
                                           └─────────┬──────────┘
                                                     │
                                           ┌─────────▼──────────┐
-                                          │  hybrid_search /    │
-                                          │  relationship CTEs  │
+                                          │  hybrid_search /   │
+                                          │  relationship CTEs │
                                           └─────────┬──────────┘
                                                     │
-                                          ┌─────────▼──────────┐
+                                          ┌─────────▼───────────┐
                                           │  MCP server (auth)  │
                                           │  deployed on Vercel │
-                                          └─────────┬──────────┘
+                                          └─────────┬───────────┘
                                                     │
-                                          ┌─────────▼──────────┐
+                                          ┌─────────▼───────────┐
                                           │  Claude / any MCP   │
-                                          │  client              │
+                                          │  client             │
                                           └─────────────────────┘
 ```
 

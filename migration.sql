@@ -47,3 +47,11 @@ CREATE TRIGGER IF NOT EXISTS tweets_au AFTER UPDATE ON tweets BEGIN
     INSERT INTO tweets_fts(tweets_fts, rowid, content) VALUES ('delete', CAST(old.id AS INTEGER), old.content);
     INSERT INTO tweets_fts(rowid, content) VALUES (CAST(new.id AS INTEGER), new.content);
 END;
+
+CREATE TABLE IF NOT EXISTS api_keys (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    key_hash TEXT NOT NULL UNIQUE,
+    client_name TEXT NOT NULL UNIQUE,
+    created_at DATE NOT NULL,
+    revoked_at DATE
+)

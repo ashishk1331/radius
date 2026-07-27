@@ -1,12 +1,27 @@
 from fastmcp import FastMCP
+from fastmcp.server.auth.providers.jwt import JWTVerifier
 from fields import Tweet
 from typing import List
 import sqlite3 as sql
 from repository import SearchMode, SEARCH_QUERIES
 from helper import fuzzy_score
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+JWKS_URI = os.getenv("JWKS_URI", "http://localhost:8000/.well-known/jwks.json")
+JWT_ISSUER = os.getenv("JWT_ISSUER", "http://localhost:8000")
+JWT_AUDIENCE = os.getenv("JWT_AUDIENCE", "mcp-production-api")
+
+verifier = JWTVerifier(
+    jwks_uri=JWKS_URI,
+    issuer=JWT_ISSUER,
+    audience=JWT_AUDIENCE,
+)
 
 
-mcp = FastMCP("Radius")
+mcp = FastMCP(name="Radius", auth=verifier)
 
 
 @mcp.tool

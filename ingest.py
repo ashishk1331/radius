@@ -1,27 +1,6 @@
 import json
 import sqlite3 as sql
-
-QUERIES = {
-    "UPSERT": {
-        "TWEET": None,
-        "AUTHOR": None,
-        "MEDIA": None,
-    },
-    "SELECT": {
-        "AUTHOR": None,
-    },
-}
-
-
-def load_queries():
-    with open("queries/upsert_author.sql", "r") as q:
-        QUERIES["UPSERT"]["AUTHOR"] = q.read()
-    with open("queries/upsert_tweet.sql", "r") as q:
-        QUERIES["UPSERT"]["TWEET"] = q.read()
-    with open("queries/upsert_media.sql", "r") as q:
-        QUERIES["UPSERT"]["MEDIA"] = q.read()
-    with open("queries/select_author.sql", "r") as q:
-        QUERIES["SELECT"]["AUTHOR"] = q.read()
+from repository import QUERIES
 
 
 def load_bookmarks():
@@ -31,7 +10,6 @@ def load_bookmarks():
 
 def Ingest():
     bookmarks = load_bookmarks()
-    load_queries()
 
     with open("migration.sql", "r") as file:
         migration = file.read()
@@ -72,3 +50,6 @@ def Ingest():
                 )
 
     con.close()
+
+if __name__ == "__main__":
+    Ingest()
