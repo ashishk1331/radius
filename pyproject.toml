@@ -21,6 +21,12 @@ dev = [
     "pytest>=8.0.0",
 ]
 
+[tool.vercel]
+# `mcp.py` is not one of the filenames Vercel auto-detects (app/index/server/
+# main/wsgi/asgi), so the entrypoint is named explicitly. The name is kept for
+# the URL it produces: /api/mcp.
+entrypoint = "api.mcp:app"
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"

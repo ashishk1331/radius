@@ -29,3 +29,5 @@ keys/
 
 # Vercel project link, created by `vercel link`
 .vercel/
+.vercel
+.env*
