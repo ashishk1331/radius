@@ -8,6 +8,7 @@
 <style>
   :root {
     --paper: #F4F1E6;
+    --paper-2: #EAE5D5;
     --ink: #23201C;
     --red: #B4362A;
     --rule: #23201C;
@@ -51,6 +52,7 @@
     margin-bottom: clamp(20px, 4vw, 34px);
   }
   .card.double { outline: 1px solid var(--rule); outline-offset: 4px; }
+  .card[id] { scroll-margin-top: 58px; }
 
   .row { display: flex; align-items: stretch; border-bottom: var(--hair); }
   .row:last-child { border-bottom: none; }
@@ -187,7 +189,12 @@
     letter-spacing: 0.03em;
   }
 
-  .code { padding: var(--pad); border-bottom: var(--hair); overflow-x: auto; }
+  .code {
+    padding: var(--pad);
+    border-bottom: var(--hair);
+    background: var(--paper-2);
+    overflow-x: auto;
+  }
   .code:last-child { border-bottom: none; }
   .code pre {
     font-family: var(--mono);
@@ -198,17 +205,25 @@
   }
   .code .c { opacity: 0.55; }
   .code .r { color: var(--red); }
+  .d-narrow { display: none; }
 
   nav {
+    position: sticky;
+    top: 0;
+    z-index: 2;
     display: flex;
-    flex-wrap: wrap;
     border: var(--hair);
+    background: var(--paper);
     margin-bottom: clamp(20px, 4vw, 34px);
+    overflow-x: auto;
+    scrollbar-width: none;
   }
+  nav::-webkit-scrollbar { display: none; }
   nav a {
-    flex: 1 1 auto;
+    flex: 1 0 auto;
     text-align: center;
-    padding: 13px 10px;
+    white-space: nowrap;
+    padding: 13px 14px;
     color: var(--ink);
     text-decoration: none;
     font-size: clamp(11px, 1.8vw, 12.5px);
@@ -232,8 +247,6 @@
 
   @media (max-width: 720px) {
     .spec .k { flex: 0 0 34%; }
-    nav a { flex: 1 1 25%; border-bottom: var(--hair); }
-    nav a:last-child { border-right: var(--hair); }
   }
 
   @media (max-width: 560px) {
@@ -257,8 +270,17 @@
     }
     .spec .v { padding-top: 9px; }
 
-    nav a { flex: 1 1 50%; }
-    nav a:nth-child(even) { border-right: none; }
+    nav a { padding: 13px 16px; }
+
+    footer {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 11px;
+      padding-top: 16px;
+      line-height: 1.4;
+    }
+    footer .sep { display: none; }
 
     .lbl { font-size: 11px; }
     .val { font-size: 19px; }
@@ -272,8 +294,16 @@
     .head h2 { font-size: 22px; }
     .head .no { font-size: 20px; }
     .colophon .big { font-size: 27px; }
-    .code pre { font-size: 13px; }
     nav a, footer { font-size: 12.5px; }
+
+    .code pre {
+      font-size: 13px;
+      white-space: pre-wrap;
+      overflow-wrap: break-word;
+    }
+    .code.diagram pre { white-space: pre; }
+    .d-wide { display: none; }
+    .d-narrow { display: block; }
   }
 
   @media (max-width: 380px) {
@@ -305,7 +335,7 @@
       </div>
       <div class="col">
         <span class="lbl">Elements</span>
-        <div class="val">Python, libSQL, FastMCP, RS256</div>
+        <div class="val">Python, Turso, FastMCP, RS256</div>
       </div>
     </div>
 
@@ -359,8 +389,13 @@
       authenticated HTTP. No third-party API access, no password ever stored or
       scripted, one database you own.</p>
     </div>
-    <div class="code">
-<pre>bookmark → ingestion → Turso (libSQL + FTS5) → search → MCP (JWT) → agent</pre>
+    <div class="code diagram">
+<pre class="d-wide">bookmark → ingestion → Turso (FTS5) → search → MCP (JWT) → agent</pre>
+<pre class="d-narrow">bookmark → ingestion
+        ↓
+Turso (FTS5) → search
+        ↓
+MCP (JWT) → agent</pre>
     </div>
     <div class="spec">
       <div class="r"><div class="k">Ingestion</div><div class="v">Cookie-based export, idempotent upserts, safe to re-run</div></div>
@@ -401,7 +436,7 @@ uv run radius serve</pre>
     </div>
     <div class="prose">
       <p>Leave <b>TURSO_DATABASE_URL</b> unset and radius falls back to a plain
-      local libSQL file — useful for offline work, and what the test suite runs
+      local SQLite file — useful for offline work, and what the test suite runs
       against so it needs no credentials.</p>
     </div>
   </section>
@@ -447,13 +482,25 @@ claude mcp add --transport http radius http://127.0.0.1:9000/mcp \
       token, the public half is published as a JWKS, and the server verifies
       against it. There are no credentials in the database.</p>
     </div>
-    <div class="code">
-<pre>radius token issue ──signs with──▶ keys/private.pem
+    <div class="code diagram">
+<pre class="d-wide">radius token issue ──signs with──▶ keys/private.pem
                                         │
         client ──Bearer JWT──▶ MCP ──verifies with──▶ keys/public.pem
                                         │
                                         ▼
                               require_scopes per tool</pre>
+<pre class="d-narrow">radius token issue
+   │ signs with
+   ▼
+keys/private.pem
+
+client ─Bearer JWT─▶ MCP
+   │ verifies with
+   ▼
+keys/public.pem
+   │
+   ▼
+require_scopes per tool</pre>
     </div>
     <div class="spec">
       <div class="r"><div class="k">Layer one</div><div class="v">Tokens that are missing, malformed, expired, wrongly signed, or carrying the wrong issuer or audience are rejected before any tool code runs</div></div>
@@ -504,7 +551,7 @@ npx vercel --prod
     </div>
   </section>
 
-  <footer>
+  <footer id="foot">
     <a href="https://github.com/ashishk1331/radius">GitHub</a>
     <span class="sep">·</span>
     <a href="https://modelcontextprotocol.io">Model Context Protocol</a>
