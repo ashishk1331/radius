@@ -47,3 +47,6 @@ CREATE TRIGGER IF NOT EXISTS tweets_au AFTER UPDATE ON tweets BEGIN
     INSERT INTO tweets_fts(tweets_fts, rowid, content) VALUES ('delete', CAST(old.id AS INTEGER), old.content);
     INSERT INTO tweets_fts(rowid, content) VALUES (CAST(new.id AS INTEGER), new.content);
 END;
+
+-- Auth is stateless: clients present RS256 JWTs signed by the local key pair
+-- (see src/radius/auth), so no credentials are stored in the database.

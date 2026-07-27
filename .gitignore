@@ -5,6 +5,8 @@ build/
 dist/
 wheels/
 *.egg-info
+.ruff_cache/
+.pytest_cache/
 
 # Virtual environments
 .venv
@@ -13,3 +15,12 @@ wheels/
 *.json
 *.jsonl
 *.db
+
+# Local configuration — .env.example is the committed template
+.env
+.env.*
+!.env.example
+
+# Token signing key material. Never commit these; the published JWKS is
+# regenerated from them by `radius keys init`.
+keys/
