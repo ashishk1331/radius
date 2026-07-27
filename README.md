@@ -355,7 +355,7 @@ fails.
 
 | Method | Path | Auth | Description |
 |---|---|---|---|
-| `POST` | `/mcp` | **Bearer token** | MCP streamable-HTTP endpoint |
+| `POST` | `/mcp` | **Bearer token** | MCP streamable-HTTP endpoint. Deployed on Vercel this is `/api/mcp` — see [Deploying to Vercel](#deploying-to-vercel) |
 | `GET` | `/health` | Public | Liveness check, returns `{"status":"ok"}` |
 | `GET` | `/.well-known/jwks.json` | Public | Published verification keys |
 
@@ -571,15 +571,38 @@ TypeScript-only (`mcp-handler`), but none of it is needed: the
 [Python runtime](https://vercel.com/docs/functions/runtimes/python) runs ASGI
 apps and supports the lifespan protocol, which is all FastMCP requires.
 
-Two things make the serverless deployment different from `radius serve`, both
-handled in `api/index.py`:
+### What deploys, and how it differs
 
-- **`stateless_http=True`** — a request may land on any instance, so the
-  transport cannot assume a session an earlier request established.
-- **`json_response=True`** — one ordinary JSON response per POST rather than a
-  streamed SSE event, which is the simpler contract for a Function.
+Vercel builds from git. The corpus and the key files are gitignored and never
+reach the deployment — the corpus is already in Turso, and the verification key
+arrives as an environment variable.
 
-**1. Create the database**
+Everything about the Function lives in [`api/mcp.py`](api/mcp.py), which differs
+from `radius serve` in three ways:
+
+| | Why |
+|---|---|
+| Mounted at `/api/mcp` | Vercel has two Python routing behaviours — a file under `api/` becomes a Function at its own path, and a detected framework entrypoint receives every path. `/api/mcp` is correct under both, and matches the URL shape Vercel's MCP docs use |
+| `stateless_http=True` | A request may land on any instance, so the transport cannot assume a session an earlier request established |
+| `json_response=True` | One ordinary JSON response per POST instead of a streamed SSE event — the simpler contract for a request-scoped Function |
+
+### Pipeline
+
+```
+ ┌── local ────────────────────────┐        ┌── Vercel ───────────────┐
+ │  cron → radius ingest           │        │  api/mcp.py             │
+ │  radius token issue (private ───┼── PEM ─┼─▶ verifies with          │
+ │    key never leaves here)       │ public │   RADIUS_PUBLIC_KEY_PEM │
+ └───────────────┬─────────────────┘        └────────────┬────────────┘
+                 │ writes                        reads   │
+                 └──────────▶ Turso ◀────────────────────┘
+                            (one database)
+```
+
+Data and code deploy on separate tracks: `git push` ships code, ingestion ships
+bookmarks. Neither waits on the other.
+
+### 1. Create the database
 
 ```bash
 turso db create radius
@@ -595,10 +618,33 @@ uv run radius migrate
 uv run radius ingest bookmarks.json
 ```
 
-**2. Set the Vercel environment**
+### 2. Generate the signing key, if you have not
 
-Production reads the same database, and gets the verification key from an
-environment variable since the key files never reach the deployment:
+```bash
+uv run radius keys init
+```
+
+### 3. Link the project
+
+```bash
+npx vercel login
+npx vercel link
+```
+
+`link` creates `.vercel/` locally and asks which scope and project to use. It is
+gitignored.
+
+### 4. Set the environment
+
+Five variables. Add each to the Production environment:
+
+```bash
+npx vercel env add TURSO_DATABASE_URL production
+npx vercel env add TURSO_AUTH_TOKEN production
+npx vercel env add JWT_ISSUER production        # https://<your-app>.vercel.app
+npx vercel env add JWT_AUDIENCE production      # radius-mcp
+npx vercel env add RADIUS_PUBLIC_KEY_PEM production < keys/public.pem
+```
 
 | Variable | Value |
 |---|---|
@@ -609,27 +655,54 @@ environment variable since the key files never reach the deployment:
 | `JWT_AUDIENCE` | `radius-mcp` |
 
 Only the **public** key goes to Vercel. The private key never leaves your
-machine, so tokens can only be minted locally.
+machine, so tokens can only ever be minted locally.
 
-**3. Deploy**
+`JWT_ISSUER` must match the deployed URL exactly. You will not know it until the
+first deploy, so it is fine to deploy once, read the URL, then set this and
+redeploy.
 
-```bash
-vercel --prod
-```
-
-**4. Reissue tokens for the new issuer**
-
-`JWT_ISSUER` is matched exactly, so tokens minted against `http://127.0.0.1:9000`
-will not verify in production:
+### 5. Deploy
 
 ```bash
-JWT_ISSUER=https://your-app.vercel.app uv run radius token issue -c claude-desktop
+npx vercel --prod
 ```
 
-Point your client at `https://your-app.vercel.app/mcp` with that token.
+### 6. Verify
 
-**Keeping it current.** Ingestion still runs locally on cron and writes straight
-to Turso, so new bookmarks are live the moment the job finishes — no redeploy in
+```bash
+curl https://<your-app>.vercel.app/api/mcp \
+  -X POST -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+# → 401, with a WWW-Authenticate challenge. Auth is live.
+```
+
+Then mint a token for the deployed issuer and try it for real:
+
+```bash
+TOKEN=$(JWT_ISSUER=https://<your-app>.vercel.app \
+  uv run radius token issue -c claude --ttl 2592000 | tail -2 | head -1)
+
+curl https://<your-app>.vercel.app/api/mcp \
+  -X POST -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"whoami","arguments":{}}}'
+```
+
+`whoami` is the fastest end-to-end check: it proves the token verified and the
+Function is running, without touching the database. Follow it with a
+`fetch_bookmarks` call to prove Turso is reachable too.
+
+### 7. Connect a client
+
+```bash
+claude mcp add --transport http radius https://<your-app>.vercel.app/api/mcp \
+  --header "Authorization: Bearer $TOKEN"
+```
+
+**Keeping it current.** Ingestion runs locally on cron and writes straight to
+Turso, so new bookmarks are live the moment the job finishes — no redeploy in
 the loop. The deployment only changes when the code does.
 
 ## Security

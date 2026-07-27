@@ -1,9 +1,9 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "functions": {
-    "api/index.py": {
+    "api/mcp.py": {
       "maxDuration": 30,
-      "excludeFiles": "{tests/**,keys/**,bookmarks.db,bookmarks.json,*.webp,public/**,.env*}"
+      "excludeFiles": "{tests/**,keys/**,bookmarks.db*,bookmarks.json,*.webp,.env*}"
     }
   }
 }
