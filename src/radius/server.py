@@ -9,11 +9,14 @@ Two layers of protection sit in front of every tool:
    the tools its ``scope`` claim covers.
 """
 
+from functools import lru_cache
+from pathlib import Path
+
 from fastmcp import FastMCP
 from fastmcp.server.auth import require_scopes
 from fastmcp.server.dependencies import get_access_token
 from starlette.requests import Request
-from starlette.responses import JSONResponse
+from starlette.responses import HTMLResponse, JSONResponse
 
 from radius import search
 from radius.auth import keys, scopes, verifier
@@ -23,6 +26,12 @@ from radius.db import query as run_query
 from radius.models import SearchResult
 
 MAX_TOP_K = 50
+STATIC_DIR = Path(__file__).resolve().parent / "static"
+
+
+@lru_cache(maxsize=1)
+def homepage() -> str:
+    return (STATIC_DIR / "index.html").read_text(encoding="utf-8")
 
 
 def fetch_bookmarks(
@@ -84,6 +93,10 @@ def create_server(config: Settings | None = None) -> FastMCP:
     @mcp.custom_route("/health", methods=["GET"])
     async def health_route(request: Request) -> JSONResponse:
         return JSONResponse({"status": "ok"})
+
+    @mcp.custom_route("/", methods=["GET"])
+    async def home_route(request: Request) -> HTMLResponse:
+        return HTMLResponse(homepage())
 
     return mcp
 

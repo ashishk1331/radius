@@ -846,4 +846,5 @@ also what makes them accepted by `token issue`.
 
 ## License
 
-MIT.
+MIT — see [LICENSE](LICENSE). Built by
+[Ashish Khare](https://github.com/ashishk1331).
