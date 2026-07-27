@@ -48,10 +48,5 @@ CREATE TRIGGER IF NOT EXISTS tweets_au AFTER UPDATE ON tweets BEGIN
     INSERT INTO tweets_fts(rowid, content) VALUES (CAST(new.id AS INTEGER), new.content);
 END;
 
-CREATE TABLE IF NOT EXISTS api_keys (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    key_hash TEXT NOT NULL UNIQUE,
-    client_name TEXT NOT NULL UNIQUE,
-    created_at DATE NOT NULL,
-    revoked_at DATE
-)
+-- Auth is stateless: clients present RS256 JWTs signed by the local key pair
+-- (see src/radius/auth), so no credentials are stored in the database.
