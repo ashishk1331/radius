@@ -68,9 +68,20 @@ def load_private_key(config: Settings | None = None) -> jwk.RSAKey:
 
 
 def load_public_pem(config: Settings | None = None) -> str:
+    """The verification key, from the environment if set, else from disk.
+
+    Serverless hosts deploy from git, and the key files are deliberately
+    gitignored — so RADIUS_PUBLIC_KEY_PEM carries the public half instead. It
+    is public material; only the private key must stay secret.
+    """
     config = config or settings()
+
+    if config.public_key_pem:
+        return config.public_key_pem
+
     if not config.public_key_path.exists():
         raise MissingKeyError(config.public_key_path)
+
     return config.public_key_path.read_text()
 
 

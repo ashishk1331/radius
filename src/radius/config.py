@@ -50,11 +50,21 @@ class Settings:
 
     db_path: Path
 
+    # Turso is the corpus whenever a URL is set — the same database locally and
+    # in production. Without one, radius uses db_path as a plain local file,
+    # which is there for tests and offline work.
+    turso_url: str | None
+    turso_auth_token: str
+
     # Key material. The private key signs tokens; the public half is published
     # as a JWKS so any verifier can check them.
     private_key_path: Path
     public_key_path: Path
     jwks_path: Path
+
+    # Inline PEM, for hosts with no writable filesystem to read a key file
+    # from. Takes precedence over public_key_path when set.
+    public_key_pem: str | None
 
     # When set, the verifier fetches keys over HTTP instead of reading
     # public_key_path. Use it in deployments where signing and serving are
@@ -78,9 +88,12 @@ class Settings:
             env=env,
             root=root,
             db_path=_path(root, "RADIUS_DB_PATH", "bookmarks.db"),
+            turso_url=os.getenv("TURSO_DATABASE_URL") or None,
+            turso_auth_token=os.getenv("TURSO_AUTH_TOKEN", ""),
             private_key_path=_path(root, "RADIUS_PRIVATE_KEY", "keys/private.pem"),
             public_key_path=_path(root, "RADIUS_PUBLIC_KEY", "keys/public.pem"),
             jwks_path=_path(root, "RADIUS_JWKS_PATH", "public/.well-known/jwks.json"),
+            public_key_pem=os.getenv("RADIUS_PUBLIC_KEY_PEM") or None,
             jwks_uri=os.getenv("JWKS_URI") or None,
             issuer=issuer,
             audience=os.getenv("JWT_AUDIENCE", "radius-mcp"),

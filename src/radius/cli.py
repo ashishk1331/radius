@@ -22,9 +22,9 @@ def cmd_serve(args: argparse.Namespace) -> None:
 
 
 def cmd_migrate(args: argparse.Namespace) -> None:
-    from radius.db import migrate
+    from radius.db import migrate, mode
 
-    print(f"Schema applied to {migrate(args.db)}")
+    print(f"Schema applied to {migrate(args.db)} ({mode()} mode)")
 
 
 def cmd_ingest(args: argparse.Namespace) -> None:

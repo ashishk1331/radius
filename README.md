@@ -4,13 +4,14 @@
 
 **Your bookmarks, as a searchable corpus your AI agent can actually query.**
 
-radius turns a flat pile of saved bookmarks into relational SQLite data and
+radius turns a flat pile of saved bookmarks into relational libSQL data and
 serves it to any MCP-speaking client over an authenticated HTTP server. No
-third-party API access. No passwords stored or scripted. One SQLite file you
-own, on hardware you control.
+third-party API access. No passwords stored or scripted. One database — a
+Turso instance you own — read by your laptop and your deployment alike, with
+nothing to keep in step between them.
 
 ```
-bookmark → ingestion → SQLite (FTS5) → search → MCP (JWT) → agent
+bookmark → ingestion → Turso (libSQL + FTS5) → search → MCP (JWT) → agent
 ```
 
 ---
@@ -18,9 +19,11 @@ bookmark → ingestion → SQLite (FTS5) → search → MCP (JWT) → agent
 **Contents**
 
 [Overview](#overview) · [How it works](#how-it-works) · [Quickstart](#quickstart) ·
-[Concepts](#concepts) · [Configuration](#configuration) · [CLI reference](#cli-reference) ·
+[Using radius](#using-radius) · [Concepts](#concepts) ·
+[Configuration](#configuration) · [CLI reference](#cli-reference) ·
 [MCP API reference](#mcp-api-reference) · [Authentication](#authentication) ·
-[Data model](#data-model) · [Operations](#operations) · [Security](#security) ·
+[Data model](#data-model) · [Operations](#operations) ·
+[Deploying to Vercel](#deploying-to-vercel) · [Security](#security) ·
 [Troubleshooting](#troubleshooting) · [Development](#development) · [Roadmap](#roadmap)
 
 ---
@@ -39,12 +42,13 @@ tool that happens to speak a standard protocol — not a multi-tenant service.
 
 | Capability | Detail |
 |---|---|
-| Ingestion | Cookie-based CLI export → idempotent SQLite upserts, safe to re-run |
-| Storage | Real tables — authors, tweets, media — not a JSON blob |
+| Ingestion | Cookie-based CLI export → idempotent libSQL upserts, safe to re-run |
+| Storage | One Turso database. Real tables — authors, tweets, media — not a JSON blob |
 | Search | FTS5 lexical (`exact`) and rapidfuzz similarity (`fuzzy`) |
 | Interface | Streamable-HTTP MCP server, `fetch_bookmarks` + `whoami` |
 | Auth | RS256 JWTs signed by a local key pair, verified against a published JWKS |
 | Authorization | Per-tool scopes — a token opens only what it was minted for |
+| Hosting | Runs locally, or as a single Python Function on Vercel |
 
 **What it deliberately does not do.** Script a login, store a password, store a
 credential of any kind, phone home, or require a cloud account to run.
@@ -114,9 +118,98 @@ curl -i -X POST http://127.0.0.1:9000/mcp \
 ```
 
 Add `-H "Authorization: Bearer <your-token>"` to the same call and it returns
-`200`. Then point your MCP client at `http://127.0.0.1:9000/mcp` with that
-token as its bearer credential. Consult your client's own docs for connector
-configuration — that changes faster than a README can track.
+`200`. Now connect a client — see below.
+
+## Using radius
+
+### Connect Claude Code
+
+```bash
+uv run radius serve                                    # in one terminal
+
+TOKEN=$(uv run radius token issue -c claude-code --ttl 2592000 | tail -2 | head -1)
+claude mcp add --transport http radius http://127.0.0.1:9000/mcp \
+  --header "Authorization: Bearer $TOKEN"
+```
+
+Confirm it took:
+
+```bash
+claude mcp list
+# radius: http://127.0.0.1:9000/mcp (HTTP) - ✔ Connected
+```
+
+Remove it again with `claude mcp remove radius`.
+
+### Connect another MCP client
+
+Any client that speaks streamable HTTP needs two things: the URL
+`http://127.0.0.1:9000/mcp`, and the header
+`Authorization: Bearer <your-token>`. Where you put those varies by client and
+changes faster than a README can track — check your client's current connector
+docs. Clients that only speak stdio need a stdio-to-HTTP bridge in front of
+radius.
+
+### Ask your bookmarks something
+
+Once connected, the point is that you stop thinking about tools at all. The
+agent picks `fetch_bookmarks` on its own:
+
+> *What have I saved about local-first software?*
+
+> *Find that thread I bookmarked about SQLite performance — I think it
+> mentioned WAL mode.*
+
+> *Who do I bookmark most often about Rust?*
+
+Two habits make results better. Say the mode when you know the wording is
+approximate — *"search my bookmarks fuzzily for parsr"* — and ask for more
+results when you're surveying rather than looking something up, since the
+default is 5 and the ceiling is 50.
+
+`whoami` is there for when a client misbehaves: *"call whoami"* tells you which
+token it is actually using and when that token expires.
+
+### Call the tools directly
+
+No agent required — useful for scripting or debugging:
+
+```python
+import asyncio
+from fastmcp import Client
+from fastmcp.client.transports import StreamableHttpTransport
+
+TOKEN = "<your-token>"
+
+async def main():
+    transport = StreamableHttpTransport("http://127.0.0.1:9000/mcp", auth=TOKEN)
+    async with Client(transport) as client:
+        result = await client.call_tool(
+            "fetch_bookmarks", {"query": "rust", "search_mode": "exact", "top_k": 3}
+        )
+        for row in result.structured_content["result"]:
+            print(f"[{row['score']:.2f}] @{row['handle']}: {row['content'][:70]}")
+
+asyncio.run(main())
+```
+
+For a plain SQL query against the same data, skip the server entirely — see
+[Data model](#data-model).
+
+### When the token expires
+
+Tokens default to a one-hour life, which is fine for a scripted call and
+annoying for a client you leave connected. Mint longer-lived ones with `--ttl`
+(`2592000` is 30 days), and understand the tradeoff before you do: there is no
+per-token revocation, so a long-lived token that leaks stays valid until it
+expires or you rotate the key. See [Security](#security).
+
+An expired token shows up as a `401`, or as a client that lists no tools.
+Reissue and update the client's header:
+
+```bash
+uv run radius token inspect "$TOKEN"   # check `exp` before assuming
+```
 
 ## Concepts
 
@@ -134,8 +227,17 @@ both, **higher `score` is better**.
 
 | Mode | Engine | Matching | Score |
 |---|---|---|---|
-| `exact` (default) | SQLite FTS5 | Tokenized lexical match; the query is **FTS5 query syntax** | Negated bm25 relevance |
-| `fuzzy` | rapidfuzz `partial_ratio` | Character-level similarity over full content | 0–100, only ≥ 85 returned |
+| `exact` (default) | FTS5, in the database | Tokenized lexical match; the query is **FTS5 query syntax** | Negated bm25 relevance |
+| `fuzzy` | rapidfuzz `partial_ratio`, in Python | Character-level similarity over full content | 0–100, only ≥ 85 returned |
+
+`fuzzy` scores in the application rather than in SQL. libSQL has no
+`create_function`, and a hosted database cannot call back into Python
+regardless — so it pulls the candidate rows and ranks them in process.
+
+That has a measurable cost against Turso: `exact` ranks inside the database and
+returns in ~0.2s warm, while `fuzzy` transfers every row first and takes ~1.5s
+over a 200-bookmark corpus. Reach for `exact` by default, and treat `fuzzy` as
+the fallback for approximate or misspelled wording.
 
 Pick `exact` for keyword and phrase lookups (`"local first"`, `sql*`,
 `AI OR agents`). Pick `fuzzy` when the wording is approximate or misspelled, or
@@ -167,7 +269,9 @@ Relative paths resolve against the project root.
 |---|---|---|
 | `RADIUS_ENV` | `local` | Which `.env.<name>` file to load |
 | `RADIUS_HOME` | auto-detected | Project root override, for paths and env files |
-| `RADIUS_DB_PATH` | `bookmarks.db` | SQLite corpus location |
+| `RADIUS_DB_PATH` | `bookmarks.db` | Local file, used only when no Turso URL is set |
+| `TURSO_DATABASE_URL` | *unset* | The corpus. Unset falls back to a local file, for tests and offline work |
+| `TURSO_AUTH_TOKEN` | *empty* | Turso credential. Needs write access for ingestion |
 | `RADIUS_HOST` | `127.0.0.1` | Server bind address |
 | `RADIUS_PORT` | `9000` | Server port |
 | `JWT_ISSUER` | `http://127.0.0.1:9000` | Written as `iss`, and required to match on verify |
@@ -176,6 +280,7 @@ Relative paths resolve against the project root.
 | `JWKS_URI` | *unset* | Fetch verification keys over HTTP instead of reading the local public key |
 | `RADIUS_PRIVATE_KEY` | `keys/private.pem` | Signing key (mode 0600, never committed) |
 | `RADIUS_PUBLIC_KEY` | `keys/public.pem` | Verification key |
+| `RADIUS_PUBLIC_KEY_PEM` | *unset* | Verification key inline, for hosts with no key file. Wins over the path |
 | `RADIUS_JWKS_PATH` | `public/.well-known/jwks.json` | Where the published JWKS is written |
 
 Changing `JWT_ISSUER` or `JWT_AUDIENCE` invalidates every token already issued —
@@ -206,8 +311,9 @@ separate migrate step. Defaults to `bookmarks.json` in the project root.
 
 ### `radius migrate`
 
-Applies the schema on its own. Every statement is `IF NOT EXISTS`, so it is
-re-runnable.
+Applies the schema on its own, to whichever database the configuration points
+at. Every statement is `IF NOT EXISTS`, so it is re-runnable. Prints the
+connection mode it used.
 
 | Flag | Description |
 |---|---|
@@ -393,8 +499,9 @@ tweets_fts  -- FTS5 index over tweets.content, kept in sync by triggers
 populated by ingestion — they are groundwork for thread reconstruction (see
 [Roadmap](#roadmap)).
 
-Because it's plain SQLite, the corpus is queryable directly whenever the MCP
-layer is more ceremony than you need:
+libSQL is a SQLite fork and the file is a SQLite file, so the corpus stays
+queryable with ordinary tooling whenever the MCP layer is more ceremony than
+you need:
 
 ```bash
 sqlite3 bookmarks.db "SELECT handle, content FROM tweets JOIN authors ON author_id = authors.id LIMIT 5"
@@ -448,12 +555,82 @@ uv run radius ingest bookmarks.json
 
 ### Backup
 
-`bookmarks.db` is the whole corpus and is gitignored — it holds your data, so it
-is not committed. Back it up like any other file you'd hate to lose:
+The corpus lives in Turso, which handles its own durability. What that does not
+cover is you: a bad ingestion upserts into the live database just as happily as
+a good one, and there is no second copy to fall back to. Keep your
+`bookmarks.json` exports, and take a dump before anything destructive:
 
 ```bash
-sqlite3 bookmarks.db ".backup 'bookmarks-$(date +%F).db'"
+turso db shell radius .dump > radius-$(date +%F).sql
 ```
+
+## Deploying to Vercel
+
+radius deploys as a single Python Function. Vercel's own MCP documentation is
+TypeScript-only (`mcp-handler`), but none of it is needed: the
+[Python runtime](https://vercel.com/docs/functions/runtimes/python) runs ASGI
+apps and supports the lifespan protocol, which is all FastMCP requires.
+
+Two things make the serverless deployment different from `radius serve`, both
+handled in `api/index.py`:
+
+- **`stateless_http=True`** — a request may land on any instance, so the
+  transport cannot assume a session an earlier request established.
+- **`json_response=True`** — one ordinary JSON response per POST rather than a
+  streamed SSE event, which is the simpler contract for a Function.
+
+**1. Create the database**
+
+```bash
+turso db create radius
+turso db show radius --url          # → TURSO_DATABASE_URL
+turso db tokens create radius       # → TURSO_AUTH_TOKEN
+```
+
+Put both in `.env.local` and ingest. From here on that hosted database *is* the
+corpus — your local runs read the same rows production will:
+
+```bash
+uv run radius migrate
+uv run radius ingest bookmarks.json
+```
+
+**2. Set the Vercel environment**
+
+Production reads the same database, and gets the verification key from an
+environment variable since the key files never reach the deployment:
+
+| Variable | Value |
+|---|---|
+| `TURSO_DATABASE_URL` | your Turso URL |
+| `TURSO_AUTH_TOKEN` | your Turso token |
+| `RADIUS_PUBLIC_KEY_PEM` | contents of `keys/public.pem` |
+| `JWT_ISSUER` | `https://your-app.vercel.app` |
+| `JWT_AUDIENCE` | `radius-mcp` |
+
+Only the **public** key goes to Vercel. The private key never leaves your
+machine, so tokens can only be minted locally.
+
+**3. Deploy**
+
+```bash
+vercel --prod
+```
+
+**4. Reissue tokens for the new issuer**
+
+`JWT_ISSUER` is matched exactly, so tokens minted against `http://127.0.0.1:9000`
+will not verify in production:
+
+```bash
+JWT_ISSUER=https://your-app.vercel.app uv run radius token issue -c claude-desktop
+```
+
+Point your client at `https://your-app.vercel.app/mcp` with that token.
+
+**Keeping it current.** Ingestion still runs locally on cron and writes straight
+to Turso, so new bookmarks are live the moment the job finishes — no redeploy in
+the loop. The deployment only changes when the code does.
 
 ## Security
 
@@ -509,42 +686,65 @@ Below that threshold the results were noise, so there is no partial-credit tier.
 `sqlite3 bookmarks.db "SELECT COUNT(*) FROM tweets"`. If that count is zero,
 check that the export JSON has a top-level `data` array.
 
+**Ingestion takes minutes.** Every write is a round trip to Turso — roughly
+300 ms to a distant region — and a backfill issues one per author, tweet, and
+media row. A 200-bookmark backfill lands in a few minutes. Incremental cron
+runs only write what changed and finish in seconds, so this is a one-time cost.
+Picking a Turso region near you is the cheapest improvement.
+
+**Production returns no bookmarks but works locally.** Almost always means
+`TURSO_DATABASE_URL` is missing from the Vercel environment, so the Function
+fell back to `local` mode and opened an empty file that ships with no data.
+`radius migrate` prints the mode it resolved; `whoami` confirms the deployment
+is otherwise healthy.
+
+**`401` in production only.** `JWT_ISSUER` differs between your machine and the
+deployment, and it is matched exactly. Mint production tokens with the
+production issuer, as shown in [Deploying to Vercel](#deploying-to-vercel).
+
 ## Development
 
 ```bash
 uv sync           # install, including dev dependencies
-uv run pytest     # 21 tests
+uv run pytest     # 31 tests
 uvx ruff check src tests
 uvx ruff format src tests
 ```
 
-The test suite covers key generation and token round-trips, rejection of
+Tests run in `local` mode against throwaway libSQL files, so the suite needs no
+Turso account and no network.
+
+It covers key generation and token round-trips, rejection of
 tampered/expired/foreign-audience tokens, HTTP-level `401`s against a live ASGI
-app, and per-tool scope filtering — including an invariant test that fails if a
-tool is ever registered without an auth check.
+app, per-tool scope filtering — including an invariant test that fails if a tool
+is ever registered without an auth check — and the data layer: mode selection,
+row mapping, FTS5 ranking, fuzzy thresholds, and transaction rollback.
 
 ```
 radius/
+├── api/
+│   └── index.py            # Vercel entrypoint (stateless + JSON responses)
 ├── src/radius/
 │   ├── server.py           # MCP server: tools + their scope guards
 │   ├── config.py           # env-driven settings
 │   ├── cli.py              # the `radius` command
 │   ├── models.py           # Author / Tweet / Media / SearchResult
-│   ├── search.py           # FUZZY_SCORE, registered as a SQLite function
-│   ├── ingest.py           # raw JSON → SQLite upserts
+│   ├── search.py           # fuzzy scoring, applied in Python
+│   ├── ingest.py           # raw JSON → libSQL upserts
 │   ├── auth/
 │   │   ├── keys.py         # RSA key pair + JWKS
 │   │   ├── tokens.py       # mint and inspect tokens
 │   │   ├── scopes.py       # the scope vocabulary
 │   │   └── verifier.py     # the JWTVerifier the server runs on
 │   └── db/
-│       ├── connection.py   # connections, pragmas, migrations
+│       ├── connection.py   # Turso / local connections, row mapping
 │       ├── queries.py      # SQL loader
 │       ├── migration.sql   # schema
 │       └── sql/            # one file per query
 ├── tests/
 ├── keys/                   # generated, gitignored
 ├── bookmarks.db            # the corpus itself, gitignored
+├── vercel.json
 └── pyproject.toml
 ```
 
@@ -556,10 +756,9 @@ also what makes them accepted by `token issue`.
 
 | Planned | Notes |
 |---|---|
-| Semantic search | `sqlite-vec` embeddings fused with FTS5 via reciprocal rank fusion |
+| Semantic search | Embeddings fused with FTS5 via reciprocal rank fusion |
 | Thread reconstruction | Reply and quote chains via recursive SQL — schema columns already exist |
 | Author lookup | `get_author_bookmarks` over the existing `authors` join |
-| Remote hosting | Deployment as a remote MCP server |
 
 ## License
 

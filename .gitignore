@@ -11,10 +11,12 @@ wheels/
 # Virtual environments
 .venv
 
-# Personal files
+# Personal files — your bookmark exports, never the project's own config
 *.json
 *.jsonl
 *.db
+!vercel.json
+!public/.well-known/*.json
 
 # Local configuration — .env.example is the committed template
 .env

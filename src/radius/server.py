@@ -15,9 +15,11 @@ from fastmcp.server.dependencies import get_access_token
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
+from radius import search
 from radius.auth import keys, scopes, verifier
 from radius.config import Settings, settings
-from radius.db import SEARCH_QUERIES, SearchMode, connect
+from radius.db import SEARCH_EXACT, SEARCH_MODES, SELECT_ALL, SearchMode, connect
+from radius.db import query as run_query
 from radius.models import SearchResult
 
 MAX_TOP_K = 50
@@ -34,13 +36,16 @@ def fetch_bookmarks(
         search_mode: Strategy to use ('exact' or 'fuzzy'). Defaults to 'exact'.
         top_k: Top k similar to tweets/bookmarks. Defaults to 5.
     """
-    if search_mode not in SEARCH_QUERIES:
-        raise ValueError(f"search_mode must be one of {sorted(SEARCH_QUERIES)}")
+    if search_mode not in SEARCH_MODES:
+        raise ValueError(f"search_mode must be one of {sorted(SEARCH_MODES)}")
 
     limit = max(1, min(top_k, MAX_TOP_K))
 
-    with connect(readonly=True) as con:
-        rows = con.execute(SEARCH_QUERIES[search_mode], (query, limit)).fetchall()
+    with connect() as con:
+        if search_mode == "exact":
+            rows = run_query(con, SEARCH_EXACT, (query, limit))
+        else:
+            rows = search.rank_fuzzy(run_query(con, SELECT_ALL), query, limit)
 
     return [SearchResult.from_row(row) for row in rows]
 
