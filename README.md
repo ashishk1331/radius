@@ -1,3 +1,5 @@
+![Hand illustration placed on the left side of the banner](banner.webp)
+
 # radius
 
 A local-first pipeline that turns your saved bookmarks into a searchable,
