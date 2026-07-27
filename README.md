@@ -35,8 +35,8 @@ no real search and no way to see how anything relates to anything else. radius
 exists to make that bet pay off: ask an agent *"what have I saved about X"* and
 get an actual answer, grounded in your own saved data.
 
-**Who it's for.** One person, one corpus, one machine. radius is a personal
-tool that happens to speak a standard protocol — not a multi-tenant service.
+**Who it's for.** One person, one corpus. radius is a personal tool that
+happens to speak a standard protocol — not a multi-tenant service.
 
 **What you get today**
 
@@ -567,9 +567,11 @@ turso db shell radius .dump > radius-$(date +%F).sql
 ## Deploying to Vercel
 
 radius deploys as a single Python Function. Vercel's own MCP documentation is
-TypeScript-only (`mcp-handler`), but none of it is needed: the
-[Python runtime](https://vercel.com/docs/functions/runtimes/python) runs ASGI
-apps and supports the lifespan protocol, which is all FastMCP requires.
+TypeScript-only (`mcp-handler`), but none of it is needed, and no port is
+required: the [Python runtime](https://vercel.com/docs/functions/runtimes/python)
+runs ASGI apps and runs the lifespan protocol, which is the one thing FastMCP's
+session manager needs. This path is deployed and working — a running
+deployment answers `tools/call` in about 1.6s including the Turso round trip.
 
 ### What deploys, and how it differs
 
@@ -693,6 +695,15 @@ curl https://<your-app>.vercel.app/api/mcp \
 `whoami` is the fastest end-to-end check: it proves the token verified and the
 Function is running, without touching the database. Follow it with a
 `fetch_bookmarks` call to prove Turso is reachable too.
+
+Three signals are worth reading carefully, because each isolates a different
+layer:
+
+| Response | What it proves |
+|---|---|
+| `401` with `WWW-Authenticate` | The Function booted and the ASGI lifespan ran. Without the lifespan FastMCP's session manager raises, so a clean rejection means the whole chain is up |
+| `/.well-known/jwks.json` returns your key | `RADIUS_PUBLIC_KEY_PEM` survived with its newlines intact. Compare the `kid` against `radius keys show` |
+| `whoami` returns your client name | `JWT_ISSUER` matches what you minted against |
 
 ### 7. Connect a client
 
