@@ -293,12 +293,18 @@ is installed on your `PATH`.
 
 ### `radius serve`
 
-Runs the MCP server over streamable HTTP.
+Runs the MCP server over streamable HTTP, and serves the documentation page at
+`/`.
 
 | Flag | Description |
 |---|---|
 | `--host HOST` | Override `RADIUS_HOST` |
 | `--port PORT` | Override `RADIUS_PORT` |
+| `--reload` | Restart on file changes. Development only |
+
+`--reload` watches `src/radius` for `.py`, `.html` and `.sql` changes. The HTML
+and SQL are included deliberately: the homepage is cached in memory and queries
+are read once at import, so without a restart neither would pick up an edit.
 
 ### `radius ingest [FILE]`
 
@@ -790,7 +796,7 @@ production issuer, as shown in [Deploying to Vercel](#deploying-to-vercel).
 
 ```bash
 uv sync           # install, including dev dependencies
-uv run pytest     # 31 tests
+uv run pytest     # 30 tests
 uvx ruff check src tests
 uvx ruff format src tests
 ```
@@ -807,7 +813,7 @@ row mapping, FTS5 ranking, fuzzy thresholds, and transaction rollback.
 ```
 radius/
 ├── api/
-│   └── index.py            # Vercel entrypoint (stateless + JSON responses)
+│   └── mcp.py              # Vercel entrypoint (stateless + JSON responses)
 ├── src/radius/
 │   ├── server.py           # MCP server: tools + their scope guards
 │   ├── config.py           # env-driven settings
@@ -815,6 +821,7 @@ radius/
 │   ├── models.py           # Author / Tweet / Media / SearchResult
 │   ├── search.py           # fuzzy scoring, applied in Python
 │   ├── ingest.py           # raw JSON → libSQL upserts
+│   ├── static/             # the documentation page served at /
 │   ├── auth/
 │   │   ├── keys.py         # RSA key pair + JWKS
 │   │   ├── tokens.py       # mint and inspect tokens

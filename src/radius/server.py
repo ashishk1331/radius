@@ -117,6 +117,11 @@ def get_server() -> FastMCP:
     return _server
 
 
+def asgi_app():
+    """ASGI factory for uvicorn, which needs an import string to reload."""
+    return get_server().http_app()
+
+
 def __getattr__(name: str):
     # Keeps `fastmcp run radius/server.py:mcp` working against the lazy server.
     if name == "mcp":

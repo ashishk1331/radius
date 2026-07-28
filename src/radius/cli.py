@@ -11,13 +11,31 @@ from radius.config import settings
 
 
 def cmd_serve(args: argparse.Namespace) -> None:
-    from radius.server import get_server
-
     config = settings()
     host = args.host or config.host
     port = args.port or config.port
+    where = f"http://{host}:{port}/mcp  (issuer {config.issuer})"
 
-    print(f"Radius MCP on http://{host}:{port}/mcp  (issuer {config.issuer})")
+    if args.reload:
+        import uvicorn
+
+        from radius.config import PACKAGE_ROOT
+
+        print(f"Radius MCP on {where}, reloading on changes under {PACKAGE_ROOT}")
+        uvicorn.run(
+            "radius.server:asgi_app",
+            factory=True,
+            host=host,
+            port=port,
+            reload=True,
+            reload_dirs=[str(PACKAGE_ROOT)],
+            reload_includes=["*.py", "*.html", "*.sql"],
+        )
+        return
+
+    from radius.server import get_server
+
+    print(f"Radius MCP on {where}")
     get_server().run(transport="http", host=host, port=port)
 
 
@@ -74,6 +92,11 @@ def build_parser() -> argparse.ArgumentParser:
     serve = sub.add_parser("serve", help="Run the MCP server.")
     serve.add_argument("--host", help="Override RADIUS_HOST.")
     serve.add_argument("--port", type=int, help="Override RADIUS_PORT.")
+    serve.add_argument(
+        "--reload",
+        action="store_true",
+        help="Restart when a .py, .html or .sql file under the package changes.",
+    )
     serve.set_defaults(func=cmd_serve)
 
     migrate = sub.add_parser("migrate", help="Create or update the SQLite schema.")
