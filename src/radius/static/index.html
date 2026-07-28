@@ -7,11 +7,15 @@
 <meta name="description" content="A personal MCP server that turns saved bookmarks into a searchable, relational corpus and serves it to AI agents over authenticated HTTP.">
 <style>
   :root {
-    --bg: #EDF1C3;
-    --ink: #143A1E;
-    --ink-soft: rgba(20, 58, 30, 0.60);
-    --panel: #E4EAB2;
-    --rule: rgba(20, 58, 30, 0.20);
+    color-scheme: light dark;
+
+    --bg: #0C0B1C;
+    --ink: #BCBAFF;
+    --ink-soft: rgba(188, 186, 255, 0.70);
+    --panel: #171532;
+    --rule: rgba(188, 186, 255, 0.22);
+    --thumb: rgba(188, 186, 255, 0.30);
+    --thumb-hover: rgba(188, 186, 255, 0.55);
 
     --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, "Helvetica Neue", Arial, sans-serif;
     --serif: "Iowan Old Style", Georgia, "Times New Roman", serif;
@@ -19,7 +23,9 @@
 
     --t-display: clamp(30px, 6.1vw, 64px);
     --t-h2: clamp(26px, 4.2vw, 44px);
+    --t-h3: clamp(20px, 2.2vw, 27px);
     --t-body: clamp(16px, 1.75vw, 20px);
+    --t-small: clamp(14px, 1.5vw, 16px);
     --t-mono: clamp(13px, 1.4vw, 15px);
     --t-label: clamp(12px, 1.3vw, 13.5px);
 
@@ -35,7 +41,44 @@
     --maxw: 1080px;
   }
 
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #F2F0FE;
+      --ink: #1E1CE8;
+      --ink-soft: rgba(23, 21, 190, 0.72);
+      --panel: #E7E4FC;
+      --rule: rgba(30, 28, 232, 0.20);
+      --thumb: rgba(30, 28, 232, 0.26);
+      --thumb-hover: rgba(30, 28, 232, 0.50);
+    }
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; scrollbar-width: thin; }
+
+  html { scrollbar-color: var(--thumb) transparent; }
+
+  ::-webkit-scrollbar { width: 11px; height: 11px; }
+  ::-webkit-scrollbar-track,
+  ::-webkit-scrollbar-corner { background: transparent; }
+  ::-webkit-scrollbar-button,
+  ::-webkit-scrollbar-button:single-button,
+  ::-webkit-scrollbar-button:double-button,
+  ::-webkit-scrollbar-button:vertical:start:decrement,
+  ::-webkit-scrollbar-button:vertical:end:increment,
+  ::-webkit-scrollbar-button:horizontal:start:decrement,
+  ::-webkit-scrollbar-button:horizontal:end:increment {
+    display: none;
+    width: 0;
+    height: 0;
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--thumb);
+    border-radius: 999px;
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover { background-color: var(--thumb-hover); }
 
   html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
   @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
@@ -47,6 +90,7 @@
     -webkit-font-smoothing: antialiased;
     line-height: 1.5;
   }
+
 
   .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 var(--gut); }
 
@@ -104,7 +148,42 @@
     gap: var(--s3);
   }
   .quad b { display: block; font-weight: 600; }
-  .hero-quad { padding: var(--s6) 0 var(--s4); }
+
+  .pieces {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--s2);
+    padding: var(--s5) 0 var(--s4);
+  }
+  .piece {
+    display: flex;
+    flex-direction: column;
+    background: var(--panel);
+    border-radius: var(--radius);
+    padding: var(--s3);
+    color: var(--ink);
+    text-decoration: none;
+  }
+  .piece .n {
+    font-size: var(--t-label);
+    font-weight: 600;
+    color: var(--ink-soft);
+    margin-bottom: var(--s3);
+  }
+  .piece .t {
+    font-size: var(--t-h3);
+    font-weight: 500;
+    line-height: 1.15;
+    letter-spacing: -0.022em;
+  }
+  .piece .d {
+    font-size: var(--t-small);
+    line-height: 1.45;
+    letter-spacing: -0.006em;
+    color: var(--ink-soft);
+    margin-top: var(--s1);
+  }
+  .piece:hover .t { text-decoration: underline; text-underline-offset: 0.12em; }
 
   nav {
     position: sticky;
@@ -144,6 +223,14 @@
     font-weight: 500;
     text-wrap: balance;
     margin: var(--s1) 0 var(--s3);
+  }
+
+  h3 {
+    font-size: var(--t-h3);
+    font-weight: 500;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    margin: var(--s4) 0 var(--s2);
   }
 
   p.body {
@@ -202,6 +289,7 @@
 
   @media (max-width: 900px) {
     .quad { grid-template-columns: repeat(2, 1fr); gap: var(--s3) var(--s2); }
+    .pieces { grid-template-columns: repeat(2, 1fr); }
   }
 
   @media (max-width: 640px) {
@@ -212,6 +300,12 @@
     .panel.diagram pre { white-space: pre; }
     .d-wide { display: none; }
     .d-narrow { display: block; }
+  }
+
+  @media (max-width: 520px) {
+    .pieces { grid-template-columns: 1fr; }
+    .piece { padding: var(--s2) var(--s3); }
+    .piece .n { margin-bottom: var(--s1); }
   }
 </style>
 </head>
@@ -234,11 +328,27 @@
     <em class="s">auth</em> works, and shipping it to production.</p>
   </section>
 
-  <div class="quad hero-quad eyebrow">
-    <div><b>Piece &#9312;</b><span class="soft">Ingestion</span></div>
-    <div><b>Piece &#9313;</b><span class="soft">Turso</span></div>
-    <div><b>Piece &#9314;</b><span class="soft">Search</span></div>
-    <div><b>Piece &#9315;</b><span class="soft">Auth</span></div>
+  <div class="pieces">
+    <a class="piece" href="#setup">
+      <span class="n">Piece 01</span>
+      <span class="t">Ingestion</span>
+      <span class="d">Your export upserts into the database, safe to re-run</span>
+    </a>
+    <a class="piece" href="#what">
+      <span class="n">Piece 02</span>
+      <span class="t">Turso</span>
+      <span class="d">One hosted database, the single source of truth</span>
+    </a>
+    <a class="piece" href="#tools">
+      <span class="n">Piece 03</span>
+      <span class="t">Search</span>
+      <span class="d">FTS5 ranking, with fuzzy matching for near misses</span>
+    </a>
+    <a class="piece" href="#auth">
+      <span class="n">Piece 04</span>
+      <span class="t">Auth</span>
+      <span class="d">RS256 tokens, scoped to one tool at a time</span>
+    </a>
   </div>
 </div>
 
@@ -251,6 +361,7 @@
     <li><a href="#auth">Auth</a></li>
     <li><a href="#commands">Commands</a></li>
     <li><a href="#deploy">Deploy</a></li>
+    <li><a href="#trouble">Trouble</a></li>
   </ul>
 </nav>
 
@@ -258,7 +369,7 @@
   <article>
 
     <section id="what">
-      <div class="eyebrow soft">&#9312; &mdash; Overview</div>
+      <div class="eyebrow soft">01 &mdash; Overview</div>
       <h2>Bookmarks are a bet on your future self that usually <em class="s">loses</em>.</h2>
       <p class="body">A flat list, no real search, no way to see how anything relates to
       anything else. Radius makes that bet pay off: ask an agent
@@ -279,7 +390,7 @@ MCP (JWT) → agent</pre>
       </div>
 
       <div class="rows">
-        <div class="r"><div class="k">Ingestion</div><div class="v">Cookie-based export, idempotent upserts, safe to re-run</div></div>
+        <div class="r"><div class="k">Ingestion</div><div class="v">You bring the JSON export; radius upserts it, safe to re-run</div></div>
         <div class="r"><div class="k">Storage</div><div class="v">One Turso database — authors, tweets and media as real tables</div></div>
         <div class="r"><div class="k">Search</div><div class="v">FTS5 lexical ranking and rapidfuzz similarity</div></div>
         <div class="r"><div class="k">Auth</div><div class="v">RS256 JWTs signed by a local key pair, with per-tool scopes</div></div>
@@ -288,11 +399,13 @@ MCP (JWT) → agent</pre>
     </section>
 
     <section id="setup">
-      <div class="eyebrow soft">&#9313; &mdash; Setup</div>
+      <div class="eyebrow soft">02 &mdash; Setup</div>
       <h2>Five commands and a database you <em class="s">own</em>.</h2>
-      <p class="body">Needs Python 3.12+, <b>uv</b>, and a cookie-based bookmark export CLI
-      you have already authenticated. Radius never scripts a login — it reads the session
-      that is already there.</p>
+      <p class="body">Needs Python 3.12+ and <b>uv</b>. Radius never scripts a login and
+      never stores a password, which has a consequence worth knowing before you start:
+      <b>it does not ship an exporter</b>. You bring the JSON, from whatever tool already
+      holds your session — a browser extension, a userscript, a cookie-based CLI. The shape
+      it has to be in is below.</p>
 
       <div class="panel">
 <pre><span class="c"># install</span>
@@ -309,20 +422,42 @@ turso db show radius --url
 turso db tokens create radius
 
 <span class="c"># load your bookmarks (applies the schema first)</span>
-bookmark-cli bookmarks --json --all &gt; bookmarks.json
 uv run radius ingest bookmarks.json
 
-<span class="c"># run it</span>
+<span class="c"># run it, then check: curl 127.0.0.1:9000/health</span>
 uv run radius serve</pre>
       </div>
 
-      <p class="body">Leave <b>TURSO_DATABASE_URL</b> unset and radius falls back to a plain
-      local SQLite file — useful for offline work, and what the test suite runs against so it
-      needs no credentials.</p>
+      <p class="body">Paste the Turso URL and token into <b>.env.local</b> before ingesting.
+      Skip it and radius writes to a local file instead — nothing fails, the rows just are
+      not where you expect. <b>radius migrate</b> prints which database it resolved. Leave
+      the URL unset on purpose and that local file is the whole setup, which is what offline
+      work and the test suite use.</p>
+
+      <h3>The JSON it expects</h3>
+      <p class="body">A top-level <b>data</b> array. Extra fields are ignored. Ingestion
+      upserts on <b>id</b>, so re-running over an overlapping export is safe.</p>
+
+      <div class="panel">
+<pre>{
+  "data": [
+    {
+      "id": "2059675872408260816",
+      "text": "the bookmark text",
+      "createdAt": "Wed May 27 16:39:29 +0000 2026",
+      "author": {
+        "id": "…", "screenName": "handle",
+        "name": "Display Name", "profileImageUrl": "…"
+      },
+      "media": [{ "url": "…", "type": "photo" }]
+    }
+  ]
+}</pre>
+      </div>
     </section>
 
     <section id="connect">
-      <div class="eyebrow soft">&#9314; &mdash; Connect</div>
+      <div class="eyebrow soft">03 &mdash; Connect</div>
       <h2>Mint a token, point a client at it.</h2>
       <p class="body">Nothing about an issued token is stored server-side. It carries an
       expiry and a scope, and that is the whole of it.</p>
@@ -339,11 +474,19 @@ claude mcp add --transport http radius http://127.0.0.1:9000/mcp \
         <div class="r"><div class="k">GET /health</div><div class="v">Liveness check. Public</div></div>
         <div class="r"><div class="k">GET /.well-known/jwks.json</div><div class="v">Published verification keys. Public</div></div>
       </div>
+
+      <p class="body">The <b>--ttl</b> above is 30 days; leave it off and you get an hour.
+      When a token lapses the connector just stops working and nothing says why. And
+      <b>radius serve</b> has to stay running for a local client to reach it — deploy it if
+      you would rather not babysit a terminal.</p>
     </section>
 
     <section id="tools">
-      <div class="eyebrow soft">&#9315; &mdash; Tools</div>
+      <div class="eyebrow soft">04 &mdash; Tools</div>
       <h2>Two tools, one scope.</h2>
+      <p class="body">You do not call these yourself. Ask your agent in plain language —
+      <em class="s">what have I saved about local-first software?</em> — and it picks the
+      tool, fills the arguments, and reads the results back to you.</p>
       <div class="rows">
         <div class="r"><div class="k">fetch_bookmarks</div><div class="v">Top-k search over the corpus. Takes query, search_mode (exact or fuzzy) and top_k from 1 to 50. Returns id, handle, display name, content, created_at and a score where higher is better</div></div>
         <div class="r"><div class="k">whoami</div><div class="v">Echoes the client, scopes, issuer and expiry behind the calling token — the fastest way to confirm a client authenticates as who you think it does</div></div>
@@ -356,7 +499,7 @@ claude mcp add --transport http radius http://127.0.0.1:9000/mcp \
     </section>
 
     <section id="auth">
-      <div class="eyebrow soft">&#9316; &mdash; Auth</div>
+      <div class="eyebrow soft">05 &mdash; Auth</div>
       <h2>Radius is its own token <em class="s">issuer</em>.</h2>
       <p class="body">One local RSA key pair signs every token, the public half is published
       as a JWKS, and the server verifies against it. There are no credentials in the
@@ -391,7 +534,7 @@ require_scopes per tool</pre>
     </section>
 
     <section id="commands">
-      <div class="eyebrow soft">&#9317; &mdash; Commands</div>
+      <div class="eyebrow soft">06 &mdash; Commands</div>
       <h2>Everything runs through one entrypoint.</h2>
       <div class="rows">
         <div class="r"><div class="k">radius serve</div><div class="v">Run the MCP server</div></div>
@@ -405,7 +548,7 @@ require_scopes per tool</pre>
     </section>
 
     <section id="deploy">
-      <div class="eyebrow soft">&#9318; &mdash; Deploy</div>
+      <div class="eyebrow soft">07 &mdash; Deploy</div>
       <h2>One Python function, and no port <em class="s">required</em>.</h2>
       <p class="body">Vercel's own MCP documentation is TypeScript-only, but none of it is
       needed — the Python runtime runs ASGI apps and runs the lifespan protocol, which is the
@@ -428,6 +571,18 @@ npx vercel --prod
       <p class="body">Only the <b>public</b> key reaches Vercel. The private key never leaves
       your machine, so tokens can only ever be minted locally. A 401 with a WWW-Authenticate
       header on the first request is the signal that the whole chain came up.</p>
+    </section>
+
+    <section id="trouble">
+      <div class="eyebrow soft">08 &mdash; When it breaks</div>
+      <h2>The five things that actually go <em class="s">wrong</em>.</h2>
+      <div class="rows">
+        <div class="r"><div class="k">401 on everything</div><div class="v">Issuer and audience are compared exactly, so a token minted before you changed JWT_ISSUER — or before <b>keys init --force</b> — will never verify again. <b>radius token inspect</b> shows what it carries</div></div>
+        <div class="r"><div class="k">Ingest worked, search is empty</div><div class="v">The rows went to a different database. Run <b>radius migrate</b> where you ingested and where you serve, and compare the mode each prints</div></div>
+        <div class="r"><div class="k">fts5: syntax error</div><div class="v">Exact mode passes your query to FTS5 verbatim, so <b>+ - : ^</b> and unbalanced quotes are parse errors. Quote the term, or use fuzzy</div></div>
+        <div class="r"><div class="k">Fuzzy finds nothing</div><div class="v">It keeps only matches scoring 85 or better. Below that was noise, so there is no partial-credit tier — try exact with a shorter keyword</div></div>
+        <div class="r"><div class="k">Ingestion takes minutes</div><div class="v">Every write is a round trip to Turso. A backfill pays that once; incremental runs finish in seconds. A closer Turso region is the cheapest fix</div></div>
+      </div>
     </section>
 
   </article>
