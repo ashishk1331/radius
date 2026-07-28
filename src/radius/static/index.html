@@ -9,12 +9,28 @@
   :root {
     --bg: #EDF1C3;
     --ink: #143A1E;
-    --ink-soft: rgba(20, 58, 30, 0.62);
-    --panel: #E3E9AF;
-    --rule: rgba(20, 58, 30, 0.22);
+    --ink-soft: rgba(20, 58, 30, 0.60);
+    --panel: #E4EAB2;
+    --rule: rgba(20, 58, 30, 0.20);
+
     --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, "Helvetica Neue", Arial, sans-serif;
     --serif: "Iowan Old Style", Georgia, "Times New Roman", serif;
     --mono: ui-monospace, "SF Mono", "Roboto Mono", Menlo, Consolas, monospace;
+
+    --t-display: clamp(30px, 6.1vw, 64px);
+    --t-h2: clamp(26px, 4.2vw, 44px);
+    --t-body: clamp(16px, 1.75vw, 20px);
+    --t-mono: clamp(13px, 1.4vw, 15px);
+    --t-label: clamp(12px, 1.3vw, 13.5px);
+
+    --s1: clamp(6px, 0.8vw, 10px);
+    --s2: clamp(12px, 1.5vw, 18px);
+    --s3: clamp(18px, 2.4vw, 28px);
+    --s4: clamp(28px, 3.6vw, 44px);
+    --s5: clamp(44px, 6vw, 76px);
+    --s6: clamp(60px, 8.5vw, 112px);
+
+    --radius: 14px;
     --gut: clamp(20px, 5vw, 76px);
     --maxw: 1080px;
   }
@@ -22,6 +38,7 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
 
   body {
     background: var(--bg);
@@ -39,45 +56,55 @@
     font-weight: 400;
     letter-spacing: -0.005em;
   }
-  .ul { text-decoration: underline; text-underline-offset: 0.1em; text-decoration-thickness: 0.055em; }
+  .ul {
+    text-decoration: underline;
+    text-underline-offset: 0.1em;
+    text-decoration-thickness: 0.055em;
+  }
+
+  .eyebrow {
+    font-size: var(--t-label);
+    font-weight: 600;
+    line-height: 1.4;
+    letter-spacing: 0.01em;
+  }
+  .soft { color: var(--ink-soft); }
 
   .topbar {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 16px;
-    padding: clamp(18px, 3vw, 30px) 0 clamp(30px, 6vw, 64px);
-    font-size: clamp(12px, 1.35vw, 14px);
+    gap: var(--s2);
+    padding: var(--s3) 0 var(--s5);
   }
-  .crumb b { font-weight: 700; }
-  .crumb span { color: var(--ink-soft); }
-  .pagemark { display: flex; align-items: center; gap: 10px; font-weight: 700; white-space: nowrap; }
+  .pagemark { display: flex; align-items: center; gap: var(--s1); white-space: nowrap; }
   .dot {
-    width: 22px; height: 22px; border-radius: 50%;
-    background: var(--ink); color: var(--bg);
-    display: grid; place-items: center;
-    font-size: 12px; font-weight: 700;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--ink);
+    color: var(--bg);
+    display: grid;
+    place-items: center;
+    font-size: 12px;
   }
 
   .hero p {
-    font-size: clamp(30px, 6.4vw, 68px);
+    font-size: var(--t-display);
     line-height: 1.06;
     letter-spacing: -0.028em;
     font-weight: 500;
-    margin-bottom: clamp(26px, 4.4vw, 52px);
     text-wrap: balance;
   }
-  .hero p:last-child { margin-bottom: 0; }
+  .hero p + p { margin-top: var(--s4); }
 
-  .pillars {
+  .quad {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: clamp(14px, 2vw, 26px);
-    padding: clamp(46px, 8vw, 96px) 0 clamp(26px, 5vw, 52px);
+    gap: var(--s3);
   }
-  .pillars div { font-size: clamp(12px, 1.35vw, 14px); line-height: 1.45; }
-  .pillars b { display: block; font-weight: 700; }
-  .pillars span { color: var(--ink-soft); }
+  .quad b { display: block; font-weight: 600; }
+  .hero-quad { padding: var(--s6) 0 var(--s4); }
 
   nav {
     position: sticky;
@@ -100,157 +127,122 @@
   nav a {
     display: block;
     white-space: nowrap;
-    padding: 14px 20px 14px 0;
+    padding: var(--s2) var(--s3) var(--s2) 0;
     color: var(--ink-soft);
     text-decoration: none;
-    font-size: clamp(12px, 1.3vw, 14px);
-    font-weight: 600;
   }
   nav a:hover { color: var(--ink); }
 
-  article { padding: clamp(46px, 8vw, 104px) 0 0; }
-  article > section { scroll-margin-top: 64px; padding-bottom: clamp(46px, 8vw, 100px); }
+  article { padding-top: var(--s6); }
+  article > section { scroll-margin-top: 64px; padding-bottom: var(--s6); }
+  article > section:last-child { padding-bottom: var(--s5); }
 
-  .no {
-    font-size: clamp(12px, 1.35vw, 14px);
-    font-weight: 700;
-    color: var(--ink-soft);
-    margin-bottom: clamp(10px, 1.6vw, 18px);
-  }
   h2 {
-    font-size: clamp(28px, 4.6vw, 50px);
-    line-height: 1.08;
+    font-size: var(--t-h2);
+    line-height: 1.1;
     letter-spacing: -0.026em;
     font-weight: 500;
-    margin-bottom: clamp(18px, 3vw, 34px);
     text-wrap: balance;
-  }
-  h3 {
-    font-size: clamp(17px, 2vw, 22px);
-    line-height: 1.25;
-    letter-spacing: -0.015em;
-    font-weight: 600;
-    margin: clamp(24px, 3.4vw, 40px) 0 clamp(10px, 1.4vw, 16px);
+    margin: var(--s1) 0 var(--s3);
   }
 
   p.body {
-    font-size: clamp(17px, 1.9vw, 21px);
-    line-height: 1.58;
+    font-size: var(--t-body);
+    line-height: 1.6;
     letter-spacing: -0.011em;
     max-width: 62ch;
   }
-  p.body + p.body { margin-top: clamp(14px, 1.8vw, 20px); }
   p.body b { font-weight: 600; }
+  p.body + p.body { margin-top: var(--s2); }
 
-  .code {
+  .panel {
     background: var(--panel);
-    border-radius: 12px;
-    padding: clamp(16px, 2.4vw, 26px);
-    margin-top: clamp(20px, 2.8vw, 30px);
+    border-radius: var(--radius);
+    padding: var(--s3);
     overflow-x: auto;
   }
-  .code pre {
+  .panel pre {
     font-family: var(--mono);
-    font-size: clamp(13px, 1.45vw, 15px);
+    font-size: var(--t-mono);
     line-height: 1.8;
-    white-space: pre;
     letter-spacing: -0.01em;
+    white-space: pre;
   }
-  .code .c { color: var(--ink-soft); }
+  .panel .c { color: var(--ink-soft); }
   .d-narrow { display: none; }
 
-  .grid { margin-top: clamp(22px, 3vw, 34px); border-top: 1px solid var(--rule); }
-  .grid .r {
+  .rows { border-top: 1px solid var(--rule); }
+  .rows .r {
     display: flex;
-    gap: clamp(16px, 3vw, 40px);
-    padding: clamp(14px, 2vw, 22px) 0;
+    gap: var(--s3);
+    padding: var(--s2) 0;
     border-bottom: 1px solid var(--rule);
   }
-  .grid .k {
-    flex: 0 0 30%;
+  .rows .k {
+    flex: 0 0 28%;
     font-family: var(--mono);
-    font-size: clamp(13px, 1.45vw, 15px);
+    font-size: var(--t-mono);
     letter-spacing: -0.01em;
+    line-height: 1.6;
     word-break: break-word;
   }
-  .grid .v {
+  .rows .v {
     flex: 1 1 auto;
-    font-size: clamp(15px, 1.65vw, 18px);
-    line-height: 1.52;
-    letter-spacing: -0.008em;
+    font-size: var(--t-body);
+    line-height: 1.55;
+    letter-spacing: -0.009em;
   }
 
-  footer {
-    border-top: 1px solid var(--rule);
-    padding: clamp(30px, 5vw, 54px) 0 clamp(40px, 7vw, 80px);
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: 12px clamp(20px, 3vw, 40px);
-    font-size: clamp(12px, 1.35vw, 14px);
-  }
-  footer a { color: var(--ink); text-decoration: none; font-weight: 600; }
+  .panel, .rows { margin-top: var(--s3); }
+  .panel + p.body, .rows + p.body { margin-top: var(--s3); }
+
+  footer { border-top: 1px solid var(--rule); padding: var(--s4) 0 var(--s5); }
+  footer a { color: var(--ink); text-decoration: none; }
   footer a:hover { text-decoration: underline; }
-  footer .muted { color: var(--ink-soft); }
-  footer .grow { margin-left: auto; }
-
-  .rv {
-    --t: 1;
-    opacity: calc(0.17 + 0.83 * var(--t));
-    transition: opacity 0.18s linear;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    html { scroll-behavior: auto; }
-    .rv { opacity: 1 !important; transition: none; }
-  }
 
   @media (max-width: 900px) {
-    .pillars { grid-template-columns: repeat(2, 1fr); gap: 22px 18px; }
+    .quad { grid-template-columns: repeat(2, 1fr); gap: var(--s3) var(--s2); }
   }
 
   @media (max-width: 640px) {
-    .grid .r { flex-direction: column; gap: 6px; }
-    .grid .k { flex: 1 1 auto; color: var(--ink-soft); }
-    .code pre { white-space: pre-wrap; overflow-wrap: break-word; }
-    .code.diagram pre { white-space: pre; }
+    .hide-sm { display: none; }
+    .rows .r { flex-direction: column; gap: var(--s1); }
+    .rows .k { flex: 1 1 auto; color: var(--ink-soft); }
+    .panel pre { white-space: pre-wrap; overflow-wrap: break-word; }
+    .panel.diagram pre { white-space: pre; }
     .d-wide { display: none; }
     .d-narrow { display: block; }
-    .crumb .hide-sm { display: none; }
-    footer .grow { margin-left: 0; }
   }
 </style>
 </head>
 <body>
 
 <div class="wrap">
-  <header class="topbar">
-    <div class="crumb">
-      <b>Radius</b> <span>&rarr; Documentation<span class="hide-sm"> &rarr; Introduction</span></span>
-    </div>
-    <div class="pagemark"><span class="dot">R</span> <span>| 0.1.0</span></div>
+  <header class="topbar eyebrow">
+    <div><b>Radius</b> <span class="soft">&rarr; Documentation<span class="hide-sm"> &rarr; Introduction</span></span></div>
+    <div class="pagemark"><span class="dot">R</span> <span class="soft">0.1.0</span></div>
   </header>
 
   <section class="hero">
-    <p class="rv">Radius is what lets your bookmarks stay <span class="ul">searchable</span>
+    <p>Radius is what lets your bookmarks stay <span class="ul">searchable</span>
     instead of <em class="s">disappearing</em> into a list.</p>
 
-    <p class="rv">It's built on &#9315; pieces that <em class="s">carry</em> a saved link
-    from your browser to an answer.</p>
+    <p>It's built on &#9315; pieces that <em class="s">carry</em> a saved link from
+    your browser to an answer.</p>
 
-    <p class="rv">This page covers <span class="ul">setup</span>, the tools, how
+    <p>This page covers <span class="ul">setup</span>, the tools, how
     <em class="s">auth</em> works, and shipping it to production.</p>
   </section>
 
-  <div class="pillars">
-    <div class="rv"><b>Piece &#9312;</b><span>Ingestion</span></div>
-    <div class="rv"><b>Piece &#9313;</b><span>Turso</span></div>
-    <div class="rv"><b>Piece &#9314;</b><span>Search</span></div>
-    <div class="rv"><b>Piece &#9315;</b><span>Auth</span></div>
+  <div class="quad hero-quad eyebrow">
+    <div><b>Piece &#9312;</b><span class="soft">Ingestion</span></div>
+    <div><b>Piece &#9313;</b><span class="soft">Turso</span></div>
+    <div><b>Piece &#9314;</b><span class="soft">Search</span></div>
+    <div><b>Piece &#9315;</b><span class="soft">Auth</span></div>
   </div>
 </div>
 
-<nav>
+<nav class="eyebrow">
   <ul>
     <li><a href="#what">What</a></li>
     <li><a href="#setup">Setup</a></li>
@@ -266,18 +258,18 @@
   <article>
 
     <section id="what">
-      <div class="no rv">&#9312; &mdash; Overview</div>
-      <h2 class="rv">Bookmarks are a bet on your future self that usually <em class="s">loses</em>.</h2>
-      <p class="body rv">A flat list, no real search, no way to see how anything relates to
+      <div class="eyebrow soft">&#9312; &mdash; Overview</div>
+      <h2>Bookmarks are a bet on your future self that usually <em class="s">loses</em>.</h2>
+      <p class="body">A flat list, no real search, no way to see how anything relates to
       anything else. Radius makes that bet pay off: ask an agent
       <em class="s">what have I saved about X</em> and get an answer grounded in your own
       saved data.</p>
-      <p class="body rv">It pulls your bookmarks on a schedule using a browser session you
+      <p class="body">It pulls your bookmarks on a schedule using a browser session you
       already established, stores them as real relational tables rather than a JSON blob, and
       exposes that corpus to any MCP-speaking client over authenticated HTTP. No third-party
       API access, no password ever stored or scripted, one database you own.</p>
 
-      <div class="code diagram rv">
+      <div class="panel diagram">
 <pre class="d-wide">bookmark → ingestion → Turso (FTS5) → search → MCP (JWT) → agent</pre>
 <pre class="d-narrow">bookmark → ingestion
       ↓
@@ -286,23 +278,23 @@ Turso (FTS5) → search
 MCP (JWT) → agent</pre>
       </div>
 
-      <div class="grid">
-        <div class="r rv"><div class="k">Ingestion</div><div class="v">Cookie-based export, idempotent upserts, safe to re-run</div></div>
-        <div class="r rv"><div class="k">Storage</div><div class="v">One Turso database — authors, tweets and media as real tables</div></div>
-        <div class="r rv"><div class="k">Search</div><div class="v">FTS5 lexical ranking and rapidfuzz similarity</div></div>
-        <div class="r rv"><div class="k">Auth</div><div class="v">RS256 JWTs signed by a local key pair, with per-tool scopes</div></div>
-        <div class="r rv"><div class="k">Hosting</div><div class="v">Locally, or as a single Python function on Vercel</div></div>
+      <div class="rows">
+        <div class="r"><div class="k">Ingestion</div><div class="v">Cookie-based export, idempotent upserts, safe to re-run</div></div>
+        <div class="r"><div class="k">Storage</div><div class="v">One Turso database — authors, tweets and media as real tables</div></div>
+        <div class="r"><div class="k">Search</div><div class="v">FTS5 lexical ranking and rapidfuzz similarity</div></div>
+        <div class="r"><div class="k">Auth</div><div class="v">RS256 JWTs signed by a local key pair, with per-tool scopes</div></div>
+        <div class="r"><div class="k">Hosting</div><div class="v">Locally, or as a single Python function on Vercel</div></div>
       </div>
     </section>
 
     <section id="setup">
-      <div class="no rv">&#9313; &mdash; Setup</div>
-      <h2 class="rv">Five commands and a database you <em class="s">own</em>.</h2>
-      <p class="body rv">Needs Python 3.12+, <b>uv</b>, and a cookie-based bookmark export CLI
+      <div class="eyebrow soft">&#9313; &mdash; Setup</div>
+      <h2>Five commands and a database you <em class="s">own</em>.</h2>
+      <p class="body">Needs Python 3.12+, <b>uv</b>, and a cookie-based bookmark export CLI
       you have already authenticated. Radius never scripts a login — it reads the session
       that is already there.</p>
 
-      <div class="code rv">
+      <div class="panel">
 <pre><span class="c"># install</span>
 git clone https://github.com/ashishk1331/radius &amp;&amp; cd radius
 uv sync
@@ -324,54 +316,53 @@ uv run radius ingest bookmarks.json
 uv run radius serve</pre>
       </div>
 
-      <p class="body rv" style="margin-top:clamp(20px,2.8vw,30px)">Leave
-      <b>TURSO_DATABASE_URL</b> unset and radius falls back to a plain local SQLite file —
-      useful for offline work, and what the test suite runs against so it needs no
-      credentials.</p>
+      <p class="body">Leave <b>TURSO_DATABASE_URL</b> unset and radius falls back to a plain
+      local SQLite file — useful for offline work, and what the test suite runs against so it
+      needs no credentials.</p>
     </section>
 
     <section id="connect">
-      <div class="no rv">&#9314; &mdash; Connect</div>
-      <h2 class="rv">Mint a token, point a client at it.</h2>
-      <p class="body rv">Nothing about an issued token is stored server-side. It carries an
+      <div class="eyebrow soft">&#9314; &mdash; Connect</div>
+      <h2>Mint a token, point a client at it.</h2>
+      <p class="body">Nothing about an issued token is stored server-side. It carries an
       expiry and a scope, and that is the whole of it.</p>
 
-      <div class="code rv">
+      <div class="panel">
 <pre>TOKEN=$(uv run radius token issue -c claude-code --ttl 2592000 | tail -2 | head -1)
 
 claude mcp add --transport http radius http://127.0.0.1:9000/mcp \
   --header "Authorization: Bearer $TOKEN"</pre>
       </div>
 
-      <div class="grid">
-        <div class="r rv"><div class="k">POST /mcp</div><div class="v">The MCP endpoint. Bearer token required. On Vercel this is /api/mcp</div></div>
-        <div class="r rv"><div class="k">GET /health</div><div class="v">Liveness check. Public</div></div>
-        <div class="r rv"><div class="k">GET /.well-known/jwks.json</div><div class="v">Published verification keys. Public</div></div>
+      <div class="rows">
+        <div class="r"><div class="k">POST /mcp</div><div class="v">The MCP endpoint. Bearer token required. On Vercel this is /api/mcp</div></div>
+        <div class="r"><div class="k">GET /health</div><div class="v">Liveness check. Public</div></div>
+        <div class="r"><div class="k">GET /.well-known/jwks.json</div><div class="v">Published verification keys. Public</div></div>
       </div>
     </section>
 
     <section id="tools">
-      <div class="no rv">&#9315; &mdash; Tools</div>
-      <h2 class="rv">Two tools, one scope.</h2>
-      <div class="grid">
-        <div class="r rv"><div class="k">fetch_bookmarks</div><div class="v">Top-k search over the corpus. Takes query, search_mode (exact or fuzzy) and top_k from 1 to 50. Returns id, handle, display name, content, created_at and a score where higher is better</div></div>
-        <div class="r rv"><div class="k">whoami</div><div class="v">Echoes the client, scopes, issuer and expiry behind the calling token — the fastest way to confirm a client authenticates as who you think it does</div></div>
+      <div class="eyebrow soft">&#9315; &mdash; Tools</div>
+      <h2>Two tools, one scope.</h2>
+      <div class="rows">
+        <div class="r"><div class="k">fetch_bookmarks</div><div class="v">Top-k search over the corpus. Takes query, search_mode (exact or fuzzy) and top_k from 1 to 50. Returns id, handle, display name, content, created_at and a score where higher is better</div></div>
+        <div class="r"><div class="k">whoami</div><div class="v">Echoes the client, scopes, issuer and expiry behind the calling token — the fastest way to confirm a client authenticates as who you think it does</div></div>
       </div>
-      <p class="body rv" style="margin-top:clamp(20px,2.8vw,30px)"><b>Exact</b> ranks inside
-      the database with FTS5 bm25 and returns in about 0.2s warm; the query is FTS5 syntax, so
-      characters it treats as operators need quoting. <b>Fuzzy</b> transfers rows and scores
-      them in process, keeping only matches at 85 or above — slower, and the right choice for
-      <em class="s">approximate</em> or misspelled wording.</p>
+      <p class="body"><b>Exact</b> ranks inside the database with FTS5 bm25 and returns in
+      about 0.2s warm; the query is FTS5 syntax, so characters it treats as operators need
+      quoting. <b>Fuzzy</b> transfers rows and scores them in process, keeping only matches at
+      85 or above — slower, and the right choice for <em class="s">approximate</em> or
+      misspelled wording.</p>
     </section>
 
     <section id="auth">
-      <div class="no rv">&#9316; &mdash; Auth</div>
-      <h2 class="rv">Radius is its own token <em class="s">issuer</em>.</h2>
-      <p class="body rv">One local RSA key pair signs every token, the public half is published
+      <div class="eyebrow soft">&#9316; &mdash; Auth</div>
+      <h2>Radius is its own token <em class="s">issuer</em>.</h2>
+      <p class="body">One local RSA key pair signs every token, the public half is published
       as a JWKS, and the server verifies against it. There are no credentials in the
       database.</p>
 
-      <div class="code diagram rv">
+      <div class="panel diagram">
 <pre class="d-wide">radius token issue ──signs with──▶ keys/private.pem
                                         │
         client ──Bearer JWT──▶ MCP ──verifies with──▶ keys/public.pem
@@ -392,38 +383,38 @@ keys/public.pem
 require_scopes per tool</pre>
       </div>
 
-      <div class="grid">
-        <div class="r rv"><div class="k">Layer one</div><div class="v">Tokens that are missing, malformed, expired, wrongly signed, or carrying the wrong issuer or audience are rejected before any tool code runs</div></div>
-        <div class="r rv"><div class="k">Layer two</div><div class="v">A valid token only opens the tools its scope covers. Others are hidden from tools/list, and calling one reports “unknown tool” rather than “forbidden”</div></div>
-        <div class="r rv"><div class="k">Revocation</div><div class="v">All-or-nothing. Cutting off one token early means rotating the key and reissuing for every client, so keep lifetimes short</div></div>
+      <div class="rows">
+        <div class="r"><div class="k">Layer one</div><div class="v">Tokens that are missing, malformed, expired, wrongly signed, or carrying the wrong issuer or audience are rejected before any tool code runs</div></div>
+        <div class="r"><div class="k">Layer two</div><div class="v">A valid token only opens the tools its scope covers. Others are hidden from tools/list, and calling one reports “unknown tool” rather than “forbidden”</div></div>
+        <div class="r"><div class="k">Revocation</div><div class="v">All-or-nothing. Cutting off one token early means rotating the key and reissuing for every client, so keep lifetimes short</div></div>
       </div>
     </section>
 
     <section id="commands">
-      <div class="no rv">&#9317; &mdash; Commands</div>
-      <h2 class="rv">Everything runs through one entrypoint.</h2>
-      <div class="grid">
-        <div class="r rv"><div class="k">radius serve</div><div class="v">Run the MCP server</div></div>
-        <div class="r rv"><div class="k">radius ingest [file]</div><div class="v">Load bookmarks from a raw JSON export. Applies the schema first</div></div>
-        <div class="r rv"><div class="k">radius migrate</div><div class="v">Apply the schema on its own. Prints the connection mode it resolved</div></div>
-        <div class="r rv"><div class="k">radius keys init</div><div class="v">Generate the signing key pair and JWKS. --force rotates and invalidates every issued token</div></div>
-        <div class="r rv"><div class="k">radius keys show</div><div class="v">Print the public JWKS</div></div>
-        <div class="r rv"><div class="k">radius token issue</div><div class="v">Mint a token. -c names the client, -s grants a scope, --ttl sets the lifetime</div></div>
-        <div class="r rv"><div class="k">radius token inspect</div><div class="v">Verify a token and print its claims</div></div>
+      <div class="eyebrow soft">&#9317; &mdash; Commands</div>
+      <h2>Everything runs through one entrypoint.</h2>
+      <div class="rows">
+        <div class="r"><div class="k">radius serve</div><div class="v">Run the MCP server</div></div>
+        <div class="r"><div class="k">radius ingest [file]</div><div class="v">Load bookmarks from a raw JSON export. Applies the schema first</div></div>
+        <div class="r"><div class="k">radius migrate</div><div class="v">Apply the schema on its own. Prints the connection mode it resolved</div></div>
+        <div class="r"><div class="k">radius keys init</div><div class="v">Generate the signing key pair and JWKS. --force rotates and invalidates every issued token</div></div>
+        <div class="r"><div class="k">radius keys show</div><div class="v">Print the public JWKS</div></div>
+        <div class="r"><div class="k">radius token issue</div><div class="v">Mint a token. -c names the client, -s grants a scope, --ttl sets the lifetime</div></div>
+        <div class="r"><div class="k">radius token inspect</div><div class="v">Verify a token and print its claims</div></div>
       </div>
     </section>
 
     <section id="deploy">
-      <div class="no rv">&#9318; &mdash; Deploy</div>
-      <h2 class="rv">One Python function, and no port <em class="s">required</em>.</h2>
-      <p class="body rv">Vercel's own MCP documentation is TypeScript-only, but none of it is
+      <div class="eyebrow soft">&#9318; &mdash; Deploy</div>
+      <h2>One Python function, and no port <em class="s">required</em>.</h2>
+      <p class="body">Vercel's own MCP documentation is TypeScript-only, but none of it is
       needed — the Python runtime runs ASGI apps and runs the lifespan protocol, which is the
       one thing FastMCP's session manager requires.</p>
-      <p class="body rv">Code and data ship on separate tracks. Ingestion runs locally against
+      <p class="body">Code and data ship on separate tracks. Ingestion runs locally against
       Turso, so new bookmarks are live the moment the job finishes; the deployment only
       changes when the code does.</p>
 
-      <div class="code rv">
+      <div class="panel">
 <pre>npx vercel link
 npx vercel env add TURSO_DATABASE_URL production
 npx vercel env add TURSO_AUTH_TOKEN production
@@ -434,52 +425,20 @@ npx vercel --prod
 <span class="c"># then set JWT_ISSUER to the deployed URL and redeploy</span></pre>
       </div>
 
-      <p class="body rv" style="margin-top:clamp(20px,2.8vw,30px)">Only the <b>public</b> key
-      reaches Vercel. The private key never leaves your machine, so tokens can only ever be
-      minted locally. A 401 with a WWW-Authenticate header on the first request is the signal
-      that the whole chain came up.</p>
+      <p class="body">Only the <b>public</b> key reaches Vercel. The private key never leaves
+      your machine, so tokens can only ever be minted locally. A 401 with a WWW-Authenticate
+      header on the first request is the signal that the whole chain came up.</p>
     </section>
 
   </article>
 
-  <footer>
-    <span class="muted">Built by</span>
-    <a href="https://github.com/ashishk1331">Ashish Khare</a>
-    <a href="https://github.com/ashishk1331/radius">Source</a>
-    <a href="https://modelcontextprotocol.io">Model Context Protocol</a>
-    <span class="muted grow">MIT</span>
+  <footer class="quad eyebrow">
+    <div><b>Built by</b><a href="https://github.com/ashishk1331">Ashish Khare</a></div>
+    <div><b>Code</b><a href="https://github.com/ashishk1331/radius">GitHub</a></div>
+    <div><b>Protocol</b><a href="https://modelcontextprotocol.io">MCP</a></div>
+    <div><b>License</b><span class="soft">MIT</span></div>
   </footer>
 </div>
 
-<script>
-(function () {
-  var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  var items = Array.prototype.slice.call(document.querySelectorAll(".rv"));
-  if (reduce || !items.length) return;
-
-  var ticking = false;
-
-  function paint() {
-    ticking = false;
-    var vh = window.innerHeight || document.documentElement.clientHeight;
-    var lit = vh * 0.58;
-    var dim = vh * 0.94;
-    for (var i = 0; i < items.length; i++) {
-      var top = items[i].getBoundingClientRect().top;
-      var t = (dim - top) / (dim - lit);
-      t = t < 0 ? 0 : t > 1 ? 1 : t;
-      items[i].style.setProperty("--t", t.toFixed(3));
-    }
-  }
-
-  function onScroll() {
-    if (!ticking) { ticking = true; window.requestAnimationFrame(paint); }
-  }
-
-  paint();
-  window.addEventListener("scroll", onScroll, { passive: true });
-  window.addEventListener("resize", onScroll, { passive: true });
-})();
-</script>
 </body>
 </html>
