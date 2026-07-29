@@ -11,7 +11,29 @@
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
 <meta name="theme-color" content="#FFFFFF">
+<link rel="preload" href="/fonts/figtree-latin.woff2" as="font" type="font/woff2" crossorigin>
 <style>
+  @font-face {
+    font-family: "Figtree";
+    font-style: normal;
+    font-weight: 300 900;
+    font-display: swap;
+    src: url("/fonts/figtree-latin.woff2") format("woff2");
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+      U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+      U+2212, U+2215, U+FEFF, U+FFFD;
+  }
+  @font-face {
+    font-family: "Figtree";
+    font-style: normal;
+    font-weight: 300 900;
+    font-display: swap;
+    src: url("/fonts/figtree-latin-ext.woff2") format("woff2");
+    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF,
+      U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020,
+      U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+  }
+
   :root {
     color-scheme: light;
 
@@ -22,11 +44,10 @@
     --rule: rgba(0, 0, 0, 0.14);
     --accent: #FF2818;
     --accent-ink: #EA1810;
-    --on-accent: #FFFFFF;
     --thumb: rgba(255, 40, 24, 0.80);
     --thumb-hover: #FF2818;
 
-    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, "Helvetica Neue", Arial, sans-serif;
+    --sans: "Figtree", -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, "Helvetica Neue", Arial, sans-serif;
     --serif: "Iowan Old Style", Georgia, "Times New Roman", serif;
     --mono: ui-monospace, "SF Mono", "Roboto Mono", Menlo, Consolas, monospace;
 
@@ -60,14 +81,15 @@
     --rule: rgba(255, 255, 255, 0.18);
     --accent: #FF2818;
     --accent-ink: #FF2818;
-    --on-accent: #FFFFFF;
     --thumb: rgba(255, 40, 24, 0.80);
     --thumb-hover: #FF2818;
   }
 
-  * { box-sizing: border-box; margin: 0; padding: 0; scrollbar-width: thin; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
 
-  html { scrollbar-color: var(--thumb) transparent; }
+  @supports (-moz-appearance: none) {
+    html { scrollbar-width: thin; scrollbar-color: var(--thumb) transparent; }
+  }
 
   ::-webkit-scrollbar { width: 11px; height: 11px; }
   ::-webkit-scrollbar-track,
@@ -134,25 +156,25 @@
     align-items: center;
     justify-content: space-between;
     gap: var(--s2);
-    padding: var(--s3) 0 var(--s5);
+    padding: var(--s3) 0 var(--s4);
   }
   .brand {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--s1);
+    font-size: clamp(16px, 1.7vw, 18px);
+    font-weight: 500;
+    letter-spacing: 0;
     color: var(--ink);
     text-decoration: none;
-    letter-spacing: -0.012em;
   }
-  .brand .mark {
-    width: 24px;
-    height: 24px;
-    flex: 0 0 auto;
-    border-radius: 6px;
-    background: url("/mcp-icons/logo-96.png") center / contain no-repeat;
+  .emblem {
+    width: clamp(60px, 9vw, 96px);
+    height: clamp(60px, 9vw, 96px);
+    border-radius: clamp(14px, 2vw, 22px);
+    margin-top: var(--s6);
+    margin-bottom: var(--s4);
+    background: url("/mcp-icons/logo-256.png") center / contain no-repeat;
   }
-  :root[data-theme="dark"] .brand .mark {
-    background-image: url("/mcp-icons/logo-dark-96.png");
+  :root[data-theme="dark"] .emblem {
+    background-image: url("/mcp-icons/logo-dark-256.png");
   }
   .version {
     font-family: var(--mono);
@@ -329,6 +351,31 @@
   .panel, .rows { margin-top: var(--s3); }
   .panel + p.body, .rows + p.body { margin-top: var(--s3); }
 
+  .links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s2);
+    margin-top: var(--s3);
+  }
+  .links a {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.72em 1.15em;
+    border: 1px solid var(--rule);
+    border-radius: 999px;
+    color: var(--ink);
+    text-decoration: none;
+    font-size: var(--t-small);
+    font-weight: 600;
+    letter-spacing: -0.008em;
+  }
+  .links a:hover { border-color: var(--accent); }
+  .links a.go {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: var(--bg);
+  }
+
   footer { border-top: 1px solid var(--rule); padding: var(--s4) 0 var(--s5); }
   footer a { color: var(--ink); text-decoration: none; }
   footer a:hover {
@@ -363,12 +410,11 @@
 
 <div class="wrap">
   <header class="topbar eyebrow">
-    <a class="brand" href="/">
-      <span class="mark"></span>
-      <b>Radius</b>
-    </a>
+    <a class="brand" href="/">Radius</a>
     <span class="version">0.1.0</span>
   </header>
+
+  <div class="emblem"></div>
 
   <section class="hero">
     <p>Radius is a self-hosted <span class="ul">MCP server</span> that makes the twitter/X
@@ -415,6 +461,7 @@
     <li><a href="#commands">Commands</a></li>
     <li><a href="#deploy">Deploy</a></li>
     <li><a href="#trouble">Trouble</a></li>
+    <li><a href="#help">Help</a></li>
   </ul>
 </nav>
 
@@ -638,12 +685,25 @@ npx vercel --prod
       </div>
     </section>
 
+    <section id="help">
+      <div class="eyebrow soft">09 &mdash; Help</div>
+      <h2>Stuck, or built something with it? <em class="s">Tell me</em>.</h2>
+      <p class="body">Radius is a personal project rather than a supported product, but I read
+      everything. For anything reproducible, an issue with the command you ran and what came
+      back is the fastest route to a fix. For a quick question, X is easier.</p>
+      <div class="links">
+        <a class="go" href="https://github.com/ashishk1331/radius/issues/new">Open an issue</a>
+        <a href="https://x.com/burntflashlight">@burntflashlight</a>
+        <a href="https://github.com/ashishk1331">GitHub</a>
+      </div>
+    </section>
+
   </article>
 
   <footer class="quad eyebrow">
     <div><b>Built by</b><a href="https://github.com/ashishk1331">Ashish Khare</a></div>
+    <div><b>Contact</b><a href="https://x.com/burntflashlight">@burntflashlight</a></div>
     <div><b>Code</b><a href="https://github.com/ashishk1331/radius">GitHub</a></div>
-    <div><b>Protocol</b><a href="https://modelcontextprotocol.io">MCP</a></div>
     <div><b>License</b><span class="soft">MIT</span></div>
   </footer>
 </div>

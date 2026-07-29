@@ -49,7 +49,9 @@ SITE_ASSETS = (
     "android-chrome-512x512.png",
     "site.webmanifest",
 )
+FONT_FILES = frozenset({"figtree-latin.woff2", "figtree-latin-ext.woff2"})
 ASSET_CACHE = "public, max-age=604800"
+FONT_CACHE = "public, max-age=31536000, immutable"
 
 
 @lru_cache(maxsize=1)
@@ -72,12 +74,12 @@ def server_icons(config: Settings) -> list[Icon]:
     ]
 
 
-def public_asset(config: Settings, *parts: str) -> Response:
+def public_asset(config: Settings, *parts: str, cache: str = ASSET_CACHE) -> Response:
     """Serve a file from ``public/``, which Vercel serves statically in prod."""
     path = config.root.joinpath("public", *parts)
     if not path.is_file():
         return PlainTextResponse("not found", status_code=404)
-    return FileResponse(path, headers={"Cache-Control": ASSET_CACHE})
+    return FileResponse(path, headers={"Cache-Control": cache})
 
 
 async def site_asset_route(config: Settings, name: str, request: Request) -> Response:
@@ -159,6 +161,13 @@ def create_server(config: Settings | None = None) -> FastMCP:
         if name not in MCP_ICON_FILES:
             return PlainTextResponse("not found", status_code=404)
         return public_asset(config, "mcp-icons", name)
+
+    @mcp.custom_route("/fonts/{name}", methods=["GET"])
+    async def font_route(request: Request) -> Response:
+        name = request.path_params["name"]
+        if name not in FONT_FILES:
+            return PlainTextResponse("not found", status_code=404)
+        return public_asset(config, "fonts", name, cache=FONT_CACHE)
 
     for asset in SITE_ASSETS:
         mcp.custom_route(f"/{asset}", methods=["GET"], name=f"asset-{asset}")(
