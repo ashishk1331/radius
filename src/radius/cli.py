@@ -94,7 +94,8 @@ def build_parser() -> argparse.ArgumentParser:
     serve.add_argument("--port", type=int, help="Override RADIUS_PORT.")
     serve.add_argument(
         "--reload",
-        action="store_true",
+        action=argparse.BooleanOptionalAction,
+        default=True,
         help="Restart when a .py, .html or .sql file under the package changes.",
     )
     serve.set_defaults(func=cmd_serve)

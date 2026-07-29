@@ -300,11 +300,16 @@ Runs the MCP server over streamable HTTP, and serves the documentation page at
 |---|---|
 | `--host HOST` | Override `RADIUS_HOST` |
 | `--port PORT` | Override `RADIUS_PORT` |
-| `--reload` | Restart on file changes. Development only |
+| `--no-reload` | Serve once, without the file watcher. Use this in production |
 
-`--reload` watches `src/radius` for `.py`, `.html` and `.sql` changes. The HTML
-and SQL are included deliberately: the homepage is cached in memory and queries
-are read once at import, so without a restart neither would pick up an edit.
+Reload is on by default, watching `src/radius` for `.py`, `.html` and `.sql`
+changes. The HTML and SQL are included deliberately: the homepage is cached in
+memory and queries are read once at import, so without a restart neither would
+pick up an edit.
+
+Reloading runs a supervisor process that re-imports the app on every change, so
+pass `--no-reload` when you are running this as a long-lived service rather than
+developing against it.
 
 ### `radius ingest [FILE]`
 
