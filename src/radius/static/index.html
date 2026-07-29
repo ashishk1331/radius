@@ -350,6 +350,7 @@
 
   .panel, .rows { margin-top: var(--s3); }
   .panel + p.body, .rows + p.body { margin-top: var(--s3); }
+  .clip + p.body { margin-top: var(--s4); }
 
   .links {
     display: flex;
@@ -369,6 +370,77 @@
     font-weight: 600;
     letter-spacing: -0.008em;
   }
+  .copyhead {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s2);
+    margin-top: var(--s3);
+  }
+  .copyhead span {
+    font-size: var(--t-label);
+    font-weight: 600;
+    color: var(--ink-soft);
+  }
+  .copyhead + .clip { margin-top: var(--s1); }
+  .clip { position: relative; }
+  .clip .panel { margin-top: 0; }
+  .clip[data-clip] .panel {
+    max-height: 260px;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+  .clip[data-open] .panel { max-height: none; }
+  .clip[data-clip]::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 7em;
+    border-radius: 0 0 var(--radius) var(--radius);
+    background: linear-gradient(to bottom, transparent, var(--panel) 68%);
+    pointer-events: none;
+  }
+  .clip[data-open]::after { content: none; }
+  .morebtn {
+    position: absolute;
+    left: 50%;
+    bottom: var(--s2);
+    transform: translateX(-50%);
+    z-index: 1;
+    font-family: var(--sans);
+    font-size: var(--t-label);
+    font-weight: 600;
+    padding: 0.5em 1.1em;
+    border: 1px solid var(--rule);
+    border-radius: 999px;
+    background: var(--bg);
+    color: var(--ink);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .morebtn:hover { border-color: var(--accent); }
+  .clip[data-open] .morebtn {
+    position: static;
+    transform: none;
+    display: block;
+    margin: var(--s3) auto 0;
+  }
+  .copybtn {
+    font-family: var(--sans);
+    font-size: var(--t-label);
+    font-weight: 600;
+    padding: 0.5em 1.1em;
+    border: 1px solid var(--rule);
+    border-radius: 999px;
+    background: var(--bg);
+    color: var(--ink);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .copybtn:hover { border-color: var(--accent); }
+
   .links a:hover { border-color: var(--accent); }
   .links a.go {
     background: var(--ink);
@@ -455,6 +527,7 @@
   <ul>
     <li><a href="#what">What</a></li>
     <li><a href="#setup">Setup</a></li>
+    <li><a href="#agents">Agents</a></li>
     <li><a href="#connect">Connect</a></li>
     <li><a href="#tools">Tools</a></li>
     <li><a href="#auth">Auth</a></li>
@@ -556,8 +629,52 @@ uv run radius serve</pre>
       </div>
     </section>
 
+    <section id="agents">
+      <div class="eyebrow soft">03 &mdash; For agents</div>
+      <h2>Or hand the whole setup to an <em class="s">agent</em>.</h2>
+      <p class="body">Everything above is the human path. If you would rather not run it
+      yourself, paste the block below into Claude Code — or any agent with shell access.
+      It has the repository, the order of operations, the two questions the agent needs to
+      ask you, and how to tell that it worked.</p>
+      <div class="copyhead">
+        <span>Paste into your agent</span>
+        <button class="copybtn" type="button" data-copy>Copy</button>
+      </div>
+      <div class="clip"><div class="panel"><pre>Set up radius for me — a self-hosted MCP server that makes my saved
+twitter/X bookmarks searchable. Repo: https://github.com/ashishk1331/radius
+
+Read AGENTS.md in the repo before you start, then work through this:
+
+  1. git clone https://github.com/ashishk1331/radius &amp;&amp; cd radius
+  2. uv sync
+  3. cp .env.example .env.local
+  4. uv run radius keys init
+  5. Ask me for a Turso database URL and auth token, and write them into
+     .env.local as TURSO_DATABASE_URL and TURSO_AUTH_TOKEN. If I do not
+     have one, skip this — radius falls back to a local file.
+  6. uv run radius migrate
+  7. Ask me where my twitter/X bookmark JSON export is, then
+     uv run radius ingest &lt;that path&gt;
+  8. uv run radius token issue -c &lt;a short name for this client&gt;
+  9. uv run radius serve
+ 10. Register the server with my MCP client, passing the token from
+     step 8 as an Authorization: Bearer header against
+     http://127.0.0.1:9000/mcp
+
+Then call the whoami tool and show me what it returns. It should report
+my client name and the bookmarks:read scope.
+
+If you get a 401, JWT_ISSUER in .env.local has to match the URL the
+client is calling — that is almost always the cause. Do not commit
+.env.local or anything under keys/.</pre></div></div>
+      <p class="body">The agent only needs two things from you: the Turso credentials and
+      the path to your export. Everything else it can read from
+      <b>AGENTS.md</b>, which documents the commands, the layout, and the
+      failure modes worth knowing about.</p>
+    </section>
+
     <section id="connect">
-      <div class="eyebrow soft">03 &mdash; Connect</div>
+      <div class="eyebrow soft">04 &mdash; Connect</div>
       <h2>Mint a token, point a client at it.</h2>
       <p class="body">Nothing about an issued token is stored server-side. It carries an
       expiry and a scope, and that is the whole of it.</p>
@@ -582,7 +699,7 @@ claude mcp add --transport http radius http://127.0.0.1:9000/mcp \
     </section>
 
     <section id="tools">
-      <div class="eyebrow soft">04 &mdash; Tools</div>
+      <div class="eyebrow soft">05 &mdash; Tools</div>
       <h2>Two tools, one scope.</h2>
       <p class="body">You do not call these yourself. Ask your agent in plain language —
       <em class="s">what have I saved about local-first software?</em> — and it picks the
@@ -599,7 +716,7 @@ claude mcp add --transport http radius http://127.0.0.1:9000/mcp \
     </section>
 
     <section id="auth">
-      <div class="eyebrow soft">05 &mdash; Auth</div>
+      <div class="eyebrow soft">06 &mdash; Auth</div>
       <h2>Radius is its own token <em class="s">issuer</em>.</h2>
       <p class="body">One local RSA key pair signs every token, the public half is published
       as a JWKS, and the server verifies against it. There are no credentials in the
@@ -634,7 +751,7 @@ require_scopes per tool</pre>
     </section>
 
     <section id="commands">
-      <div class="eyebrow soft">06 &mdash; Commands</div>
+      <div class="eyebrow soft">07 &mdash; Commands</div>
       <h2>Everything runs through one entrypoint.</h2>
       <div class="rows">
         <div class="r"><div class="k">radius serve</div><div class="v">Run the MCP server</div></div>
@@ -648,7 +765,7 @@ require_scopes per tool</pre>
     </section>
 
     <section id="deploy">
-      <div class="eyebrow soft">07 &mdash; Deploy</div>
+      <div class="eyebrow soft">08 &mdash; Deploy</div>
       <h2>One Python function, and no port <em class="s">required</em>.</h2>
       <p class="body">Vercel's own MCP documentation is TypeScript-only, but none of it is
       needed — the Python runtime runs ASGI apps and runs the lifespan protocol, which is the
@@ -674,7 +791,7 @@ npx vercel --prod
     </section>
 
     <section id="trouble">
-      <div class="eyebrow soft">08 &mdash; When it breaks</div>
+      <div class="eyebrow soft">09 &mdash; When it breaks</div>
       <h2>The five things that actually go <em class="s">wrong</em>.</h2>
       <div class="rows">
         <div class="r"><div class="k">401 on everything</div><div class="v">Issuer and audience are compared exactly, so a token minted before you changed JWT_ISSUER — or before <b>keys init --force</b> — will never verify again. <b>radius token inspect</b> shows what it carries</div></div>
@@ -686,7 +803,7 @@ npx vercel --prod
     </section>
 
     <section id="help">
-      <div class="eyebrow soft">09 &mdash; Help</div>
+      <div class="eyebrow soft">10 &mdash; Help</div>
       <h2>Stuck, or built something with it? <em class="s">Tell me</em>.</h2>
       <p class="body">Radius is a personal project rather than a supported product, but I read
       everything. For anything reproducible, an issue with the command you ran and what came
@@ -756,6 +873,37 @@ npx vercel --prod
   addEventListener('scroll', onScroll, { passive: true });
   addEventListener('resize', onScroll);
   sync();
+
+  document.querySelectorAll('.clip').forEach(clip => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'morebtn';
+    button.textContent = 'Show more';
+    button.setAttribute('aria-expanded', 'false');
+    clip.append(button);
+    clip.setAttribute('data-clip', '');
+
+    button.addEventListener('click', () => {
+      const open = clip.toggleAttribute('data-open');
+      button.textContent = open ? 'Show less' : 'Show more';
+      button.setAttribute('aria-expanded', String(open));
+      if (!open) clip.scrollIntoView({ block: 'nearest' });
+    });
+  });
+
+  document.querySelectorAll('[data-copy]').forEach(button => {
+    const source = button.closest('.copyhead').nextElementSibling.querySelector('pre');
+    button.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(source.textContent);
+        button.textContent = 'Copied';
+      } catch {
+        button.textContent = 'Press ⌘C';
+        getSelection().selectAllChildren(source);
+      }
+      setTimeout(() => { button.textContent = 'Copy'; }, 2000);
+    });
+  });
 </script>
 
 </body>
