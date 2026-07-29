@@ -106,6 +106,12 @@ rapidfuzz `partial_ratio` and keeps matches of 85 or above.
 - Vercel needs `[tool.vercel] entrypoint` in `pyproject.toml`; `api/mcp.py` is
   not an auto-detected filename.
 
+## Scope
+
+[ROADMAP.md](ROADMAP.md) lists candidate work, numbered so it can be referred
+to by number. It is a list of ideas, not a queue — do not pick items off it
+unasked.
+
 ## Releasing
 
 Versions are SemVer, tagged `vX.Y.Z`. Add entries to the `[Unreleased]`
