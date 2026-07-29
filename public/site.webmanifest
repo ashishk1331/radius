@@ -1,0 +1,13 @@
+{
+  "name": "Radius",
+  "short_name": "Radius",
+  "description": "A personal MCP server that makes saved twitter/X bookmarks searchable by an AI agent.",
+  "icons": [
+    { "src": "/android-chrome-192x192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/android-chrome-512x512.png", "sizes": "512x512", "type": "image/png" }
+  ],
+  "theme_color": "#0C0B1C",
+  "background_color": "#0C0B1C",
+  "display": "standalone",
+  "start_url": "/"
+}

@@ -5,17 +5,26 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>radius — bookmarks as a searchable corpus</title>
 <meta name="description" content="A personal MCP server that turns saved bookmarks into a searchable, relational corpus and serves it to AI agents over authenticated HTTP.">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
+<meta name="theme-color" content="#FFFFFF">
 <style>
   :root {
-    color-scheme: light dark;
+    color-scheme: light;
 
-    --bg: #0C0B1C;
-    --ink: #BCBAFF;
-    --ink-soft: rgba(188, 186, 255, 0.70);
-    --panel: #171532;
-    --rule: rgba(188, 186, 255, 0.22);
-    --thumb: rgba(188, 186, 255, 0.30);
-    --thumb-hover: rgba(188, 186, 255, 0.55);
+    --bg: #FFFFFF;
+    --ink: #000000;
+    --ink-soft: rgba(0, 0, 0, 0.62);
+    --panel: #F4F4F4;
+    --rule: rgba(0, 0, 0, 0.14);
+    --accent: #FF2818;
+    --accent-ink: #EA1810;
+    --on-accent: #FFFFFF;
+    --thumb: rgba(255, 40, 24, 0.80);
+    --thumb-hover: #FF2818;
 
     --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, "Helvetica Neue", Arial, sans-serif;
     --serif: "Iowan Old Style", Georgia, "Times New Roman", serif;
@@ -41,16 +50,19 @@
     --maxw: 1080px;
   }
 
-  @media (prefers-color-scheme: light) {
-    :root {
-      --bg: #F2F0FE;
-      --ink: #1E1CE8;
-      --ink-soft: rgba(23, 21, 190, 0.72);
-      --panel: #E7E4FC;
-      --rule: rgba(30, 28, 232, 0.20);
-      --thumb: rgba(30, 28, 232, 0.26);
-      --thumb-hover: rgba(30, 28, 232, 0.50);
-    }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+
+    --bg: #000000;
+    --ink: #FFFFFF;
+    --ink-soft: rgba(255, 255, 255, 0.66);
+    --panel: #101010;
+    --rule: rgba(255, 255, 255, 0.18);
+    --accent: #FF2818;
+    --accent-ink: #FF2818;
+    --on-accent: #FFFFFF;
+    --thumb: rgba(255, 40, 24, 0.80);
+    --thumb-hover: #FF2818;
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; scrollbar-width: thin; }
@@ -102,9 +114,11 @@
   }
   .ul {
     text-decoration: underline;
+    text-decoration-color: var(--accent);
     text-underline-offset: 0.1em;
     text-decoration-thickness: 0.055em;
   }
+  .hero em.s, h2 em.s { color: var(--accent); }
 
   .eyebrow {
     font-size: var(--t-label);
@@ -113,6 +127,7 @@
     letter-spacing: 0.01em;
   }
   .soft { color: var(--ink-soft); }
+  .eyebrow.soft { color: var(--accent-ink); }
 
   .topbar {
     display: flex;
@@ -121,16 +136,29 @@
     gap: var(--s2);
     padding: var(--s3) 0 var(--s5);
   }
-  .pagemark { display: flex; align-items: center; gap: var(--s1); white-space: nowrap; }
-  .dot {
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    background: var(--ink);
-    color: var(--bg);
-    display: grid;
-    place-items: center;
-    font-size: 12px;
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--s1);
+    color: var(--ink);
+    text-decoration: none;
+    letter-spacing: -0.012em;
+  }
+  .brand .mark {
+    width: 24px;
+    height: 24px;
+    flex: 0 0 auto;
+    border-radius: 6px;
+    background: url("/mcp-icons/logo-96.png") center / contain no-repeat;
+  }
+  :root[data-theme="dark"] .brand .mark {
+    background-image: url("/mcp-icons/logo-dark-96.png");
+  }
+  .version {
+    font-family: var(--mono);
+    color: var(--ink-soft);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
   }
 
   .hero p {
@@ -183,7 +211,12 @@
     color: var(--ink-soft);
     margin-top: var(--s1);
   }
-  .piece:hover .t { text-decoration: underline; text-underline-offset: 0.12em; }
+  .piece:hover .t {
+    text-decoration: underline;
+    text-decoration-color: var(--accent);
+    text-decoration-thickness: 2px;
+    text-underline-offset: 0.12em;
+  }
 
   nav {
     position: sticky;
@@ -210,7 +243,20 @@
     color: var(--ink-soft);
     text-decoration: none;
   }
-  nav a:hover { color: var(--ink); }
+  nav a:hover {
+    color: var(--ink);
+    text-decoration: underline;
+    text-decoration-color: var(--accent);
+    text-decoration-thickness: 2px;
+    text-underline-offset: 0.3em;
+  }
+  nav a[aria-current] {
+    color: var(--accent-ink);
+    text-decoration: underline;
+    text-decoration-color: var(--accent);
+    text-decoration-thickness: 2px;
+    text-underline-offset: 0.3em;
+  }
 
   article { padding-top: var(--s6); }
   article > section { scroll-margin-top: 64px; padding-bottom: var(--s6); }
@@ -285,7 +331,12 @@
 
   footer { border-top: 1px solid var(--rule); padding: var(--s4) 0 var(--s5); }
   footer a { color: var(--ink); text-decoration: none; }
-  footer a:hover { text-decoration: underline; }
+  footer a:hover {
+    text-decoration: underline;
+    text-decoration-color: var(--accent);
+    text-decoration-thickness: 2px;
+    text-underline-offset: 0.2em;
+  }
 
   @media (max-width: 900px) {
     .quad { grid-template-columns: repeat(2, 1fr); gap: var(--s3) var(--s2); }
@@ -293,7 +344,6 @@
   }
 
   @media (max-width: 640px) {
-    .hide-sm { display: none; }
     .rows .r { flex-direction: column; gap: var(--s1); }
     .rows .k { flex: 1 1 auto; color: var(--ink-soft); }
     .panel pre { white-space: pre-wrap; overflow-wrap: break-word; }
@@ -313,8 +363,11 @@
 
 <div class="wrap">
   <header class="topbar eyebrow">
-    <div><b>Radius</b> <span class="soft">&rarr; Documentation<span class="hide-sm"> &rarr; Introduction</span></span></div>
-    <div class="pagemark"><span class="dot">R</span> <span class="soft">0.1.0</span></div>
+    <a class="brand" href="/">
+      <span class="mark"></span>
+      <b>Radius</b>
+    </a>
+    <span class="version">0.1.0</span>
   </header>
 
   <section class="hero">
@@ -594,6 +647,56 @@ npx vercel --prod
     <div><b>License</b><span class="soft">MIT</span></div>
   </footer>
 </div>
+
+<script>
+  const toc = document.querySelector('nav');
+  const marks = [...document.querySelectorAll('article > section[id]')];
+  const links = marks.map(section => toc.querySelector(`a[href="#${section.id}"]`));
+  let current = -1;
+
+  const atEnd = () =>
+    innerHeight + scrollY >= document.documentElement.scrollHeight - 2;
+
+  const locate = () => {
+    if (atEnd()) return marks.length - 1;
+    const line = toc.getBoundingClientRect().bottom + 1;
+    let found = -1;
+    marks.forEach((section, i) => {
+      if (section.getBoundingClientRect().top <= line) found = i;
+    });
+    return found;
+  };
+
+  const keepInView = link => {
+    const bar = toc.getBoundingClientRect();
+    const box = link.getBoundingClientRect();
+    const pad = 24;
+    if (box.left < bar.left + pad) toc.scrollLeft += box.left - bar.left - pad;
+    else if (box.right > bar.right - pad) toc.scrollLeft += box.right - bar.right + pad;
+  };
+
+  const sync = () => {
+    const next = locate();
+    if (next === current) return;
+    if (links[current]) links[current].removeAttribute('aria-current');
+    current = next;
+    if (links[current]) {
+      links[current].setAttribute('aria-current', 'location');
+      keepInView(links[current]);
+    }
+  };
+
+  let queued = false;
+  const onScroll = () => {
+    if (queued) return;
+    queued = true;
+    requestAnimationFrame(() => { queued = false; sync(); });
+  };
+
+  addEventListener('scroll', onScroll, { passive: true });
+  addEventListener('resize', onScroll);
+  sync();
+</script>
 
 </body>
 </html>

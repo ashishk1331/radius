@@ -9,14 +9,21 @@ Two layers of protection sit in front of every tool:
    the tools its ``scope`` claim covers.
 """
 
-from functools import lru_cache
+from functools import lru_cache, partial
 from pathlib import Path
 
 from fastmcp import FastMCP
 from fastmcp.server.auth import require_scopes
 from fastmcp.server.dependencies import get_access_token
+from mcp.types import Icon
 from starlette.requests import Request
-from starlette.responses import HTMLResponse, JSONResponse
+from starlette.responses import (
+    FileResponse,
+    HTMLResponse,
+    JSONResponse,
+    PlainTextResponse,
+    Response,
+)
 
 from radius import search
 from radius.auth import keys, scopes, verifier
@@ -28,10 +35,53 @@ from radius.models import SearchResult
 MAX_TOP_K = 50
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 
+ICON_SIZES = (48, 96, 256)
+ICON_THEMES = (("light", ""), ("dark", "-dark"))
+MCP_ICON_FILES = frozenset(
+    f"logo{suffix}-{size}.png" for _, suffix in ICON_THEMES for size in ICON_SIZES
+)
+SITE_ASSETS = (
+    "favicon.ico",
+    "favicon-16x16.png",
+    "favicon-32x32.png",
+    "apple-touch-icon.png",
+    "android-chrome-192x192.png",
+    "android-chrome-512x512.png",
+    "site.webmanifest",
+)
+ASSET_CACHE = "public, max-age=604800"
+
 
 @lru_cache(maxsize=1)
 def homepage() -> str:
     return (STATIC_DIR / "index.html").read_text(encoding="utf-8")
+
+
+def server_icons(config: Settings) -> list[Icon]:
+    """Light and dark logo variants, at the sizes MCP clients pick between."""
+    base = config.issuer.rstrip("/")
+    return [
+        Icon(
+            src=f"{base}/mcp-icons/logo{suffix}-{size}.png",
+            mimeType="image/png",
+            sizes=[f"{size}x{size}"],
+            theme=theme,
+        )
+        for theme, suffix in ICON_THEMES
+        for size in ICON_SIZES
+    ]
+
+
+def public_asset(config: Settings, *parts: str) -> Response:
+    """Serve a file from ``public/``, which Vercel serves statically in prod."""
+    path = config.root.joinpath("public", *parts)
+    if not path.is_file():
+        return PlainTextResponse("not found", status_code=404)
+    return FileResponse(path, headers={"Cache-Control": ASSET_CACHE})
+
+
+async def site_asset_route(config: Settings, name: str, request: Request) -> Response:
+    return public_asset(config, name)
 
 
 def fetch_bookmarks(
@@ -77,7 +127,12 @@ def create_server(config: Settings | None = None) -> FastMCP:
     """Build the server with its verifier and per-tool scope requirements."""
     config = config or settings()
 
-    mcp = FastMCP(name="Radius", auth=verifier.build(config))
+    mcp = FastMCP(
+        name="Radius",
+        auth=verifier.build(config),
+        website_url=config.issuer.rstrip("/"),
+        icons=server_icons(config),
+    )
 
     read_only = require_scopes(scopes.READ_BOOKMARKS)
     mcp.tool(fetch_bookmarks, tags={"bookmarks"}, auth=read_only)
@@ -97,6 +152,18 @@ def create_server(config: Settings | None = None) -> FastMCP:
     @mcp.custom_route("/", methods=["GET"])
     async def home_route(request: Request) -> HTMLResponse:
         return HTMLResponse(homepage())
+
+    @mcp.custom_route("/mcp-icons/{name}", methods=["GET"])
+    async def mcp_icon_route(request: Request) -> Response:
+        name = request.path_params["name"]
+        if name not in MCP_ICON_FILES:
+            return PlainTextResponse("not found", status_code=404)
+        return public_asset(config, "mcp-icons", name)
+
+    for asset in SITE_ASSETS:
+        mcp.custom_route(f"/{asset}", methods=["GET"], name=f"asset-{asset}")(
+            partial(site_asset_route, config, asset)
+        )
 
     return mcp
 
