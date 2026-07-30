@@ -181,6 +181,7 @@ from fastmcp.client.transports import StreamableHttpTransport
 
 TOKEN = "<your-token>"
 
+
 async def main():
     transport = StreamableHttpTransport("http://127.0.0.1:9000/mcp", auth=TOKEN)
     async with Client(transport) as client:
@@ -189,6 +190,7 @@ async def main():
         )
         for row in result.structured_content["result"]:
             print(f"[{row['score']:.2f}] @{row['handle']}: {row['content'][:70]}")
+
 
 asyncio.run(main())
 ```
@@ -820,7 +822,11 @@ radius/
 ├── api/
 │   └── mcp.py              # Vercel entrypoint (stateless + JSON responses)
 ├── src/radius/
-│   ├── server.py           # MCP server: tools + their scope guards
+│   ├── server/
+│   │   ├── app.py          # assembly: verifier, scope guards, lifecycle
+│   │   ├── tools.py        # the calls the model makes
+│   │   ├── resources.py    # bookmark://<id>, read by the client
+│   │   └── web.py          # homepage, icons, fonts, favicons
 │   ├── config.py           # env-driven settings
 │   ├── cli.py              # the `radius` command
 │   ├── models.py           # Author / Tweet / Media / SearchResult
@@ -844,8 +850,9 @@ radius/
 └── pyproject.toml
 ```
 
-Adding a tool is two lines in `server.py` — a function, and a registration
-carrying `auth=require_scopes(...)`. New scopes go in `auth/scopes.py`, which is
+Adding a tool is two lines — a function in `server/tools.py`, and a registration
+in `server/app.py` carrying `auth=require_scopes(...)`. Resources follow the same
+shape from `server/resources.py`. New scopes go in `auth/scopes.py`, which is
 also what makes them accepted by `token issue`.
 
 ## Roadmap

@@ -1,7 +1,28 @@
+from contextlib import contextmanager
+
 import pytest
+from fastmcp.server.auth import AccessToken
+from mcp.server.auth.middleware.auth_context import auth_context_var
+from mcp.server.auth.middleware.bearer_auth import AuthenticatedUser
 
 from radius.auth import keys
 from radius.config import Settings
+
+
+@contextmanager
+def authenticated_as(*granted: str, subject: str = "claude-desktop"):
+    """Put an access token with ``granted`` scopes into the request context."""
+    token = AccessToken(
+        token="opaque",
+        client_id=subject,
+        scopes=list(granted),
+        claims={"sub": subject, "iss": "http://test-issuer", "exp": 2**31},
+    )
+    reset = auth_context_var.set(AuthenticatedUser(token))
+    try:
+        yield
+    finally:
+        auth_context_var.reset(reset)
 
 
 @pytest.fixture

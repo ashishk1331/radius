@@ -43,7 +43,7 @@ reformatting.
 
 ```
 src/radius/
-  server.py       FastMCP server, tool definitions, public HTTP routes
+  server/         app.py assembles it; tools.py, resources.py, web.py
   cli.py          The `radius` command
   config.py       Settings, resolved once from the environment
   ingest.py       Raw bookmark JSON -> upserts

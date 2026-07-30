@@ -12,6 +12,18 @@ from `1.0.0` on, breaking any of them requires a major bump.
 
 ## [Unreleased]
 
+### Added
+
+- A `bookmark://<id>` resource, so a client can cite a bookmark and re-read it
+  by URI rather than searching for it again. Guarded by `bookmarks:read`, the
+  same scope as the tools.
+
+### Changed
+
+- `server.py` is now a `server/` package — `tools.py`, `resources.py`,
+  `web.py`, and `app.py` for assembly. `from radius.server import ...` is
+  unchanged.
+
 ## [0.1.0] - 2026-07-30
 
 ### Added

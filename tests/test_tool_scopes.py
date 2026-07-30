@@ -4,13 +4,9 @@ FastMCP applies each tool's ``auth`` check when listing *and* when calling, so
 a token that lacks a scope cannot even see the tools it does not cover.
 """
 
-from contextlib import contextmanager
-
 import pytest
+from conftest import authenticated_as
 from fastmcp.exceptions import NotFoundError
-from fastmcp.server.auth import AccessToken
-from mcp.server.auth.middleware.auth_context import auth_context_var
-from mcp.server.auth.middleware.bearer_auth import AuthenticatedUser
 
 from radius.auth import scopes
 from radius.config import Settings
@@ -19,22 +15,6 @@ from radius.server import create_server
 pytestmark = pytest.mark.anyio
 
 GUARDED_TOOLS = {"fetch_bookmarks", "whoami"}
-
-
-@contextmanager
-def authenticated_as(*granted: str, subject: str = "claude-desktop"):
-    """Put an access token with ``granted`` scopes into the request context."""
-    token = AccessToken(
-        token="opaque",
-        client_id=subject,
-        scopes=list(granted),
-        claims={"sub": subject, "iss": "http://test-issuer", "exp": 2**31},
-    )
-    reset = auth_context_var.set(AuthenticatedUser(token))
-    try:
-        yield
-    finally:
-        auth_context_var.reset(reset)
 
 
 @pytest.fixture
