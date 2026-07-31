@@ -4,10 +4,14 @@ import argparse
 import json
 from pathlib import Path
 
+import uvicorn
 from joserfc.errors import JoseError
 
 from radius.auth import keys, scopes, tokens
-from radius.config import settings
+from radius.config import PACKAGE_ROOT, settings
+from radius.db import migrate, mode
+from radius.ingest import ingest
+from radius.server import get_server
 
 
 def cmd_serve(args: argparse.Namespace) -> None:
@@ -17,10 +21,6 @@ def cmd_serve(args: argparse.Namespace) -> None:
     where = f"http://{host}:{port}/mcp  (issuer {config.issuer})"
 
     if args.reload:
-        import uvicorn
-
-        from radius.config import PACKAGE_ROOT
-
         print(f"Radius MCP on {where}, reloading on changes under {PACKAGE_ROOT}")
         uvicorn.run(
             "radius.server:asgi_app",
@@ -33,21 +33,15 @@ def cmd_serve(args: argparse.Namespace) -> None:
         )
         return
 
-    from radius.server import get_server
-
     print(f"Radius MCP on {where}")
     get_server().run(transport="http", host=host, port=port)
 
 
 def cmd_migrate(args: argparse.Namespace) -> None:
-    from radius.db import migrate, mode
-
     print(f"Schema applied to {migrate(args.db)} ({mode()} mode)")
 
 
 def cmd_ingest(args: argparse.Namespace) -> None:
-    from radius.ingest import ingest
-
     count = ingest(args.source, args.db)
     print(f"Ingested {count} bookmarks")
 
@@ -100,14 +94,20 @@ def build_parser() -> argparse.ArgumentParser:
     )
     serve.set_defaults(func=cmd_serve)
 
-    migrate = sub.add_parser("migrate", help="Create or update the SQLite schema.")
-    migrate.add_argument("--db", type=Path, help="Database path.")
-    migrate.set_defaults(func=cmd_migrate)
+    migrate_parser = sub.add_parser(
+        "migrate", help="Create or update the SQLite schema."
+    )
+    migrate_parser.add_argument("--db", type=Path, help="Database path.")
+    migrate_parser.set_defaults(func=cmd_migrate)
 
-    ingest = sub.add_parser("ingest", help="Load bookmarks from a raw JSON export.")
-    ingest.add_argument("source", nargs="?", type=Path, help="Path to the JSON export.")
-    ingest.add_argument("--db", type=Path, help="Database path.")
-    ingest.set_defaults(func=cmd_ingest)
+    ingest_parser = sub.add_parser(
+        "ingest", help="Load bookmarks from a raw JSON export."
+    )
+    ingest_parser.add_argument(
+        "source", nargs="?", type=Path, help="Path to the JSON export."
+    )
+    ingest_parser.add_argument("--db", type=Path, help="Database path.")
+    ingest_parser.set_defaults(func=cmd_ingest)
 
     key_parser = sub.add_parser("keys", help="Manage the token signing key pair.")
     key_sub = key_parser.add_subparsers(dest="keys_command", required=True)

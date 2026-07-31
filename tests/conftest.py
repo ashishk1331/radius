@@ -7,6 +7,7 @@ from mcp.server.auth.middleware.bearer_auth import AuthenticatedUser
 
 from radius.auth import keys
 from radius.config import Settings
+from radius.db import QUERIES, connect, migrate
 
 
 @contextmanager
@@ -61,8 +62,6 @@ def keyed_config(config: Settings) -> Settings:
 @pytest.fixture
 def seeded_config(config: Settings) -> Settings:
     """A local libSQL database with two bookmarks in it."""
-    from radius.db import QUERIES, connect, migrate
-
     migrate(config=config)
     with connect(config=config) as con:
         con.execute(
