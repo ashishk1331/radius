@@ -32,5 +32,6 @@ QUERIES = {
     "SELECT": {
         "AUTHOR": read("select_author"),
         "TWEET": read("select_tweet"),
+        "TWEET_RECENT_N": read("select_tweet_recent"),
     },
 }

@@ -45,7 +45,7 @@ happens to speak a standard protocol — not a multi-tenant service.
 | Ingestion | Cookie-based CLI export → idempotent libSQL upserts, safe to re-run |
 | Storage | One Turso database. Real tables — authors, tweets, media — not a JSON blob |
 | Search | FTS5 lexical (`exact`) and rapidfuzz similarity (`fuzzy`) |
-| Interface | Streamable-HTTP MCP server, `fetch_bookmarks` + `whoami` |
+| Interface | Streamable-HTTP MCP server, `fetch_bookmarks` + `recent_bookmarks` + `whoami` |
 | Auth | RS256 JWTs signed by a local key pair, verified against a published JWKS |
 | Authorization | Per-tool scopes — a token opens only what it was minted for |
 | Hosting | Runs locally, or as a single Python Function on Vercel |
@@ -167,6 +167,13 @@ approximate — *"search my bookmarks fuzzily for parsr"* — and ask for more
 results when you're surveying rather than looking something up, since the
 default is 5 and the ceiling is 50.
 
+When you have nothing to search *for* — you just want to see what is in there —
+the agent reaches for `recent_bookmarks` instead, which takes no query at all:
+
+> *Show me what I have bookmarked.*
+
+> *Pull up 20 of my bookmarks so I can skim them.*
+
 `whoami` is there for when a client misbehaves: *"call whoami"* tells you which
 token it is actually using and when that token expires.
 
@@ -254,7 +261,7 @@ token can be narrower than "full access".
 
 | Scope | Grants |
 |---|---|
-| `bookmarks:read` | `fetch_bookmarks`, `whoami` |
+| `bookmarks:read` | `fetch_bookmarks`, `recent_bookmarks`, `whoami` |
 
 Nothing about an issued token is stored server-side — there is no session table,
 no key table, no credential store.
@@ -386,7 +393,7 @@ Top-k bookmark search. Requires `bookmarks:read`.
 |---|---|---|---|
 | `query` | string | *required* | Search string. In `exact` mode this is FTS5 query syntax |
 | `search_mode` | `"exact"` \| `"fuzzy"` | `"exact"` | Matching strategy |
-| `top_k` | integer | `5` | Result count, clamped to 1–50 |
+| `top_k` | integer | `5` | Result count, clamped to 5–50 |
 
 **Output** — an array of results, ordered by descending `score`:
 
@@ -415,6 +422,47 @@ Top-k bookmark search. Requires `bookmarks:read`.
     "content": "LiteParse v2.0 is out now, and it is blazing fast…",
     "created_at": "Wed May 27 16:39:29 +0000 2026",
     "score": 4.91
+  }
+]
+```
+
+### `recent_bookmarks`
+
+Bookmarks without a search query — for browsing the corpus rather than looking
+something up in it. Requires `bookmarks:read`.
+
+**Input**
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `n` | integer | `5` | Result count, clamped to 5–50 |
+
+**Output** — an array of bookmarks. Same shape as `fetch_bookmarks` minus
+`score`, since there is no query to score a result against:
+
+| Field | Type | Description |
+|---|---|---|
+| `id` | string | Tweet ID |
+| `handle` | string | Author handle |
+| `display_name` | string | Author display name |
+| `content` | string | Full bookmark text |
+| `created_at` | string | Original creation timestamp |
+
+```json
+{
+  "name": "recent_bookmarks",
+  "arguments": { "n": 2 }
+}
+```
+
+```json
+[
+  {
+    "id": "2059675872408260816",
+    "handle": "llama_index",
+    "display_name": "LlamaIndex 🦙",
+    "content": "LiteParse v2.0 is out now, and it is blazing fast…",
+    "created_at": "Wed May 27 16:39:29 +0000 2026"
   }
 ]
 ```

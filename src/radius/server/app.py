@@ -18,7 +18,7 @@ from radius.auth import keys, scopes, verifier
 from radius.config import Settings, settings
 from radius.server import web
 from radius.server.resources import BOOKMARK_URI, get_bookmark
-from radius.server.tools import fetch_bookmarks, whoami
+from radius.server.tools import fetch_bookmarks, recent_bookmarks, whoami
 
 
 def create_server(config: Settings | None = None) -> FastMCP:
@@ -34,6 +34,7 @@ def create_server(config: Settings | None = None) -> FastMCP:
 
     read_only = require_scopes(scopes.READ_BOOKMARKS)
     mcp.tool(fetch_bookmarks, tags={"bookmarks"}, auth=read_only)
+    mcp.tool(recent_bookmarks, tags={"bookmarks"}, auth=read_only)
     mcp.tool(whoami, tags={"bookmarks"}, auth=read_only)
     mcp.resource(uri=BOOKMARK_URI, tags={"bookmarks"}, auth=read_only)(get_bookmark)
 

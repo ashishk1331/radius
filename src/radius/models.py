@@ -83,3 +83,22 @@ class SearchResult:
             created_at=row["created_at"],
             score=float(row["score"]),
         )
+
+
+@dataclass
+class TweetResult:
+    id: str
+    display_name: str
+    handle: str
+    content: str
+    created_at: str
+
+    @classmethod
+    def from_row(cls, row) -> "SearchResult":
+        return cls(
+            id=row["id"],
+            handle=row["handle"],
+            display_name=row["display_name"],
+            content=row["content"],
+            created_at=row["created_at"],
+        )

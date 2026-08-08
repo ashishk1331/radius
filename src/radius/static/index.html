@@ -101,6 +101,7 @@
         <div class="r"><div class="k">Ingestion</div><div class="v">You bring the JSON export; radius upserts it, safe to re-run</div></div>
         <div class="r"><div class="k">Storage</div><div class="v">One Turso database — authors, tweets and media as real tables</div></div>
         <div class="r"><div class="k">Search</div><div class="v">FTS5 lexical ranking and rapidfuzz similarity</div></div>
+        <div class="r"><div class="k">Interface</div><div class="v">Three tools to call, and <b>bookmark://&lt;id&gt;</b> to cite one back</div></div>
         <div class="r"><div class="k">Auth</div><div class="v">RS256 JWTs signed by a local key pair, with per-tool scopes</div></div>
         <div class="r"><div class="k">Hosting</div><div class="v">Locally, or as a single Python function on Vercel</div></div>
       </div>
@@ -234,14 +235,16 @@ claude mcp add --transport http radius http://127.0.0.1:9000/mcp \
     </section>
 
     <section id="tools">
-      <div class="eyebrow soft">05 &mdash; Tools</div>
-      <h2>Two tools, one scope.</h2>
+      <div class="eyebrow soft">05 &mdash; Tools &amp; resources</div>
+      <h2>Three tools and one <em class="s">citable</em> URI.</h2>
       <p class="body">You do not call these yourself. Ask your agent in plain language —
       <em class="s">what have I saved about local-first software?</em> — and it picks the
       tool, fills the arguments, and reads the results back to you.</p>
       <div class="rows">
-        <div class="r"><div class="k">fetch_bookmarks</div><div class="v">Top-k search over the corpus. Takes query, search_mode (exact or fuzzy) and top_k from 1 to 50. Returns id, handle, display name, content, created_at and a score where higher is better</div></div>
+        <div class="r"><div class="k">fetch_bookmarks</div><div class="v">Top-k search over the corpus. Takes query, search_mode (exact or fuzzy) and top_k from 5 to 50. Returns id, handle, display name, content, created_at and a score where higher is better</div></div>
+        <div class="r"><div class="k">recent_bookmarks</div><div class="v">Bookmarks without a query. Takes n from 5 to 50 and returns the same fields minus the score, since there is nothing to score against — for when you want to browse the corpus rather than look something up in it</div></div>
         <div class="r"><div class="k">whoami</div><div class="v">Echoes the client, scopes, issuer and expiry behind the calling token — the fastest way to confirm a client authenticates as who you think it does</div></div>
+        <div class="r"><div class="k">bookmark://&lt;id&gt;</div><div class="v">One saved bookmark by id, with its author, as application/json. A resource, so the client fetches it by URI rather than the model calling it — which is what keeps a result citable after it scrolls out of context</div></div>
       </div>
       <p class="body"><b>Exact</b> ranks inside the database with FTS5 bm25 and returns in
       about 0.2s warm; the query is FTS5 syntax, so characters it treats as operators need
