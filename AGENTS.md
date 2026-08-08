@@ -51,9 +51,11 @@ src/radius/
   models.py       Tweet / SearchResult
   auth/           keys, scopes, tokens, verifier
   db/             connection, queries, migration.sql, sql/
-  static/         index.html — the documentation homepage, served at /
+  static/         index.html — the homepage template, served at /
+    diagrams/     SVG fragments inlined into it by {{ name }} placeholders
 api/mcp.py        Vercel entrypoint
-public/           Favicons, MCP icons, fonts, JWKS. Served statically on Vercel
+public/           styles.css, app.js, favicons, MCP icons, fonts, JWKS.
+                  Everything the browser fetches by URL. Static on Vercel
 tests/
 ```
 

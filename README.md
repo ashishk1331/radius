@@ -826,13 +826,15 @@ radius/
 │   │   ├── app.py          # assembly: verifier, scope guards, lifecycle
 │   │   ├── tools.py        # the calls the model makes
 │   │   ├── resources.py    # bookmark://<id>, read by the client
-│   │   └── web.py          # homepage, icons, fonts, favicons
+│   │   └── web.py          # homepage assembly, icons, fonts, favicons
 │   ├── config.py           # env-driven settings
 │   ├── cli.py              # the `radius` command
 │   ├── models.py           # Author / Tweet / Media / SearchResult
 │   ├── search.py           # fuzzy scoring, applied in Python
 │   ├── ingest.py           # raw JSON → libSQL upserts
-│   ├── static/             # the documentation page served at /
+│   ├── static/
+│   │   ├── index.html      # the page template, served at /
+│   │   └── diagrams/       # SVG fragments inlined into it
 │   ├── auth/
 │   │   ├── keys.py         # RSA key pair + JWKS
 │   │   ├── tokens.py       # mint and inspect tokens
@@ -843,12 +845,19 @@ radius/
 │       ├── queries.py      # SQL loader
 │       ├── migration.sql   # schema
 │       └── sql/            # one file per query
+├── public/                 # styles.css, app.js, icons, fonts, JWKS
 ├── tests/
 ├── keys/                   # generated, gitignored
 ├── bookmarks.db            # the corpus itself, gitignored
 ├── vercel.json
 └── pyproject.toml
 ```
+
+The page is split by how each piece reaches the browser. `public/` holds
+everything fetched by URL, which Vercel serves straight from its CDN; the HTML
+template and its `{{ diagrams/name.svg }}` fragments stay in the package, since
+an inlined SVG inherits the page's theme variables where one loaded through
+`<img>` could not.
 
 Adding a tool is two lines — a function in `server/tools.py`, and a registration
 in `server/app.py` carrying `auth=require_scopes(...)`. Resources follow the same
