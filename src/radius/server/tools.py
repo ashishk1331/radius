@@ -17,7 +17,7 @@ from radius.db import (
     connect,
 )
 from radius.db import query as run_query
-from radius.models import SearchResult, TweetResult
+from radius.models import SearchResult, TweetResult, AuthorResult
 
 MAX_TOP_K = 50
 DEFAULT_TOP_K = 5
@@ -62,6 +62,36 @@ def recent_bookmarks(n: int = DEFAULT_TOP_K) -> list[TweetResult]:
 
     return [TweetResult.from_row(row) for row in rows]
 
+def bookmarks_by_author(handle: str, k: int = DEFAULT_TOP_K) -> list[TweetResult]:
+    """
+    Fetch the tweets (saved bookmarks) of one author.
+
+    Args:
+        handle: Author handle, without the '@'. Matched exactly.
+        k: Number of tweets/bookmarks. Defaults to 5. Maximum 50.
+    """
+    limit = max(DEFAULT_TOP_K, min(k, MAX_TOP_K))
+
+    with connect() as con:
+        rows = run_query(con, QUERIES["SELECT"]["TWEET_BY_AUTHOR"], (handle, limit))
+
+    return [TweetResult.from_row(row) for row in rows]
+
+def list_authors(n: int = -1) -> list[AuthorResult]:
+    """
+    Fetch the authors in the saved bookmark list, each with a count of how many
+    bookmarks are saved from them, most-saved first.
+
+    Args:
+        n: Top `n` most saved authors. Defaults to -1, the entire list.
+    """
+    with connect() as con:
+        if n == -1:
+            rows = run_query(con, QUERIES["SELECT"]["AUTHOR_ALL"])
+        else:
+            rows = run_query(con, QUERIES["SELECT"]["AUTHOR_N"], (n, ))
+
+    return [AuthorResult.from_row(row) for row in rows]
 
 def whoami() -> dict:
     """Report the client identity and scopes carried by the current token."""

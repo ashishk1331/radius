@@ -14,7 +14,13 @@ from radius.server import create_server
 
 pytestmark = pytest.mark.anyio
 
-GUARDED_TOOLS = {"fetch_bookmarks", "recent_bookmarks", "whoami"}
+GUARDED_TOOLS = {
+    "fetch_bookmarks",
+    "recent_bookmarks",
+    "list_authors",
+    "bookmarks_by_author",
+    "whoami",
+}
 
 
 @pytest.fixture

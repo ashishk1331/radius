@@ -9,6 +9,11 @@ Without a URL, radius falls back to a plain local libSQL file. That exists so
 the test suite and offline work need neither credentials nor a network, not as
 a parallel home for your bookmarks.
 
+Setting ``RADIUS_DB_PATH`` to ``:memory:`` keeps that fallback entirely in RAM.
+libSQL gives each connection its own private in-memory database, so unlike a
+file this one connection is opened once and reused rather than reopened per
+call — closing it is what would discard the data.
+
 Two things the stdlib ``sqlite3`` module gives you are absent here, and the rest
 of the codebase is written accordingly: there is no ``row_factory`` (use
 :func:`query`, which maps rows to dicts) and no ``create_function`` (fuzzy
@@ -22,29 +27,56 @@ from typing import Literal
 
 import libsql
 
-from radius.config import Settings, settings
+from radius.config import MEMORY, Settings, settings
 from radius.db import queries
 
-Mode = Literal["local", "remote"]
+Mode = Literal["local", "remote", "memory"]
+
+_memory_con: libsql.Connection | None = None
 
 
 def mode(config: Settings | None = None) -> Mode:
     """Which database the current configuration points at."""
     config = config or settings()
-    return "remote" if config.turso_url else "local"
+    if config.turso_url:
+        return "remote"
+    return "memory" if str(config.db_path) == MEMORY else "local"
+
+
+def reset_memory() -> None:
+    """Drop the in-memory database. A no-op unless one was opened."""
+    global _memory_con
+    if _memory_con is not None:
+        _memory_con.close()
+        _memory_con = None
+
+
+def _open(target: str, config: Settings) -> tuple[libsql.Connection, bool]:
+    """Return a connection and whether the caller owns closing it."""
+    global _memory_con
+
+    if config.turso_url:
+        return libsql.connect(config.turso_url, auth_token=config.turso_auth_token), True
+
+    if target == MEMORY:
+        if _memory_con is None:
+            _memory_con = libsql.connect(MEMORY)
+        return _memory_con, False
+
+    return libsql.connect(target), True
 
 
 @contextmanager
 def connect(
     path: Path | None = None, config: Settings | None = None
 ) -> Iterator[libsql.Connection]:
-    """Open a connection, commit on clean exit, roll back on error, always close."""
-    config = config or settings()
+    """Open a connection, commit on clean exit, roll back on error, always close.
 
-    if config.turso_url:
-        con = libsql.connect(config.turso_url, auth_token=config.turso_auth_token)
-    else:
-        con = libsql.connect(str(path or config.db_path))
+    The in-memory database is the exception to "always close": it is kept open
+    for the life of the process, because closing it is what destroys it.
+    """
+    config = config or settings()
+    con, owned = _open(str(path or config.db_path), config)
 
     try:
         yield con
@@ -53,7 +85,8 @@ def connect(
         con.rollback()
         raise
     finally:
-        con.close()
+        if owned:
+            con.close()
 
 
 def query(con: libsql.Connection, sql: str, params: tuple = ()) -> list[dict]:

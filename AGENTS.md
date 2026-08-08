@@ -48,7 +48,7 @@ src/radius/
   config.py       Settings, resolved once from the environment
   ingest.py       Raw bookmark JSON -> upserts
   search.py       Fuzzy ranking (rapidfuzz)
-  models.py       Tweet / SearchResult
+  models.py       Tweet / SearchResult / TweetResult / AuthorResult
   auth/           keys, scopes, tokens, verifier
   db/             connection, queries, migration.sql, sql/
   static/         index.html — the homepage template, served at /

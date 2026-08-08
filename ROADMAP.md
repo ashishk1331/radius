@@ -16,21 +16,21 @@ once more than one client exists.
 
 ## MCP tools
 
-1. `recent_bookmarks(k)` — last k saved, no query needed
-2. `get_bookmark(id | url)` — fetch one exactly, for follow-up after a search
-3. `bookmarks_by_author(handle, k)`
-4. `bookmarks_in_range(since, until)`
-5. `list_authors()` — who you save most, with counts
-6. `stats()` — total count, date span, top authors, last ingest time
-7. `similar_to(bookmark_id, k)` — neighbours of a known bookmark
-8. `semantic_search(query, k)` — embeddings, catches paraphrase where FTS5 cannot
-9. `hybrid_search` — bm25 and vector fused; would become the new default
-10. `random_bookmark(n)` — resurfacing what you forgot you saved
-11. `get_thread(bookmark_id)` — the full thread, not just the saved tweet
-12. `add_bookmark(url)` — needs a `write:bookmarks` scope
-13. `delete_bookmark(id)` / `archive_bookmark(id)`
-14. Filters on search — `has_media`, `has_link`, `author`, `after`, `before`
-15. `fetch_link_content(bookmark_id)` — the article behind the link
+1. [x] `recent_bookmarks(k)` — last k saved, no query needed
+2. [x] `get_bookmark(id | url)` — fetch one exactly, for follow-up after a search [Fetch using resource instead]
+3. [x] `bookmarks_by_author(handle, k)`
+4. [ ] `bookmarks_in_range(since, until)`
+5. [x] `list_authors()` — who you save most, with counts
+6. [ ] `stats()` — total count, date span, top authors, last ingest time
+7. [ ] `similar_to(bookmark_id, k)` — neighbours of a known bookmark
+8. [ ] `semantic_search(query, k)` — embeddings, catches paraphrase where FTS5 cannot
+9. [ ] `hybrid_search` — bm25 and vector fused; would become the new default
+10. [ ] `random_bookmark(n)` — resurfacing what you forgot you saved
+11. [ ] `get_thread(bookmark_id)` — the full thread, not just the saved tweet
+12. [ ] `add_bookmark(url)` — needs a `write:bookmarks` scope
+13. [ ] `delete_bookmark(id)` / `archive_bookmark(id)`
+14. [ ] Filters on search — `has_media`, `has_link`, `author`, `after`, `before`
+15. [ ] `fetch_link_content(bookmark_id)` — the article behind the link
 
 ## Protocol surface
 

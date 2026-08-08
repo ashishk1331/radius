@@ -45,7 +45,7 @@ happens to speak a standard protocol — not a multi-tenant service.
 | Ingestion | Cookie-based CLI export → idempotent libSQL upserts, safe to re-run |
 | Storage | One Turso database. Real tables — authors, tweets, media — not a JSON blob |
 | Search | FTS5 lexical (`exact`) and rapidfuzz similarity (`fuzzy`) |
-| Interface | Streamable-HTTP MCP server, `fetch_bookmarks` + `recent_bookmarks` + `whoami` |
+| Interface | Streamable-HTTP MCP server — search, browse, filter by author, and count per author |
 | Auth | RS256 JWTs signed by a local key pair, verified against a published JWKS |
 | Authorization | Per-tool scopes — a token opens only what it was minted for |
 | Hosting | Runs locally, or as a single Python Function on Vercel |
@@ -174,6 +174,19 @@ the agent reaches for `recent_bookmarks` instead, which takes no query at all:
 
 > *Pull up 20 of my bookmarks so I can skim them.*
 
+When the account matters more than the topic, `bookmarks_by_author` and
+`list_authors` narrow by who wrote the thing rather than what it says:
+
+> *What have I saved from @simonw?*
+
+> *Who do I bookmark most, and how many times?*
+
+> *Give me my top 10 authors.*
+
+`list_authors` is also the way to find a handle before asking for it — the
+counts tell you who is worth reading back, and the handles are exactly what
+`bookmarks_by_author` expects.
+
 `whoami` is there for when a client misbehaves: *"call whoami"* tells you which
 token it is actually using and when that token expires.
 
@@ -261,7 +274,7 @@ token can be narrower than "full access".
 
 | Scope | Grants |
 |---|---|
-| `bookmarks:read` | `fetch_bookmarks`, `recent_bookmarks`, `whoami` |
+| `bookmarks:read` | `fetch_bookmarks`, `recent_bookmarks`, `bookmarks_by_author`, `list_authors`, `whoami` |
 
 Nothing about an issued token is stored server-side — there is no session table,
 no key table, no credential store.
@@ -274,12 +287,17 @@ to `local`, so `.env.local` is what loads unless you say otherwise.
 
 Relative paths resolve against the project root.
 
+The Turso credentials belong in `.env.production`, not `.env.local`. Keeping
+them there means an ordinary `radius ingest` cannot reach the hosted database
+by accident — `RADIUS_ENV=production` is what opts you in. Locally the corpus
+falls back to `RADIUS_DB_PATH`, which ships as `:memory:`.
+
 | Variable | Default | Purpose |
 |---|---|---|
 | `RADIUS_ENV` | `local` | Which `.env.<name>` file to load |
 | `RADIUS_HOME` | auto-detected | Project root override, for paths and env files |
-| `RADIUS_DB_PATH` | `bookmarks.db` | Local file, used only when no Turso URL is set |
-| `TURSO_DATABASE_URL` | *unset* | The corpus. Unset falls back to a local file, for tests and offline work |
+| `RADIUS_DB_PATH` | `bookmarks.db` | Local database, used only when no Turso URL is set. `:memory:` keeps it in RAM |
+| `TURSO_DATABASE_URL` | *unset* | The corpus. Unset falls back to `RADIUS_DB_PATH`, for tests and offline work |
 | `TURSO_AUTH_TOKEN` | *empty* | Turso credential. Needs write access for ingestion |
 | `RADIUS_HOST` | `127.0.0.1` | Server bind address |
 | `RADIUS_PORT` | `9000` | Server port |
@@ -463,6 +481,69 @@ something up in it. Requires `bookmarks:read`.
     "display_name": "LlamaIndex 🦙",
     "content": "LiteParse v2.0 is out now, and it is blazing fast…",
     "created_at": "Wed May 27 16:39:29 +0000 2026"
+  }
+]
+```
+
+### `bookmarks_by_author`
+
+Everything saved from one account. Requires `bookmarks:read`.
+
+**Input**
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `handle` | string | *required* | Author handle, without the `@`. Matched exactly, and case-sensitively |
+| `k` | integer | `5` | Result count, clamped to 5–50 |
+
+**Output** — an array of bookmarks, same shape as `recent_bookmarks`. An
+unknown handle returns `[]` rather than falling back to the wider corpus.
+
+```json
+{
+  "name": "bookmarks_by_author",
+  "arguments": { "handle": "llama_index", "k": 2 }
+}
+```
+
+### `list_authors`
+
+Who is in the corpus, and how much of it is theirs. Requires `bookmarks:read`.
+
+**Input**
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `n` | integer | `-1` | How many authors to return. `-1` — or any negative — means all of them |
+
+**Output** — an array of authors, ordered by `count` descending:
+
+| Field | Type | Description |
+|---|---|---|
+| `id` | string | Author ID |
+| `handle` | string | Author handle |
+| `display_name` | string | Author display name |
+| `avatar` | string \| null | Profile image URL, when the export carried one |
+| `count` | integer | How many bookmarks are saved from this author |
+
+Unlike the bookmark tools there is no upper clamp, so `n` unset returns every
+author in the corpus in one response.
+
+```json
+{
+  "name": "list_authors",
+  "arguments": { "n": 3 }
+}
+```
+
+```json
+[
+  {
+    "id": "1466408598985469956",
+    "handle": "llama_index",
+    "display_name": "LlamaIndex 🦙",
+    "avatar": "https://pbs.twimg.com/profile_images/…",
+    "count": 12
   }
 ]
 ```

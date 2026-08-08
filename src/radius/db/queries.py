@@ -31,7 +31,10 @@ QUERIES = {
     },
     "SELECT": {
         "AUTHOR": read("select_author"),
+        "AUTHOR_ALL": read("select_author_all"),
+        "AUTHOR_N": read("select_author_n"),
         "TWEET": read("select_tweet"),
         "TWEET_RECENT_N": read("select_tweet_recent"),
+        "TWEET_BY_AUTHOR": read("select_tweet_by_author"),
     },
 }

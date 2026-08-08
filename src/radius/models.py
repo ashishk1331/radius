@@ -94,11 +94,29 @@ class TweetResult:
     created_at: str
 
     @classmethod
-    def from_row(cls, row) -> "SearchResult":
+    def from_row(cls, row) -> "TweetResult":
         return cls(
             id=row["id"],
             handle=row["handle"],
             display_name=row["display_name"],
             content=row["content"],
             created_at=row["created_at"],
+        )
+
+@dataclass
+class AuthorResult:
+    id: str
+    display_name: str
+    handle: str
+    avatar: str | None
+    count: int
+
+    @classmethod
+    def from_row(cls, row) -> "AuthorResult":
+        return cls(
+            id=row["id"],
+            display_name=row["display_name"],
+            handle=row["handle"],
+            avatar=row.get("avatar", None),
+            count=row["number_of_saved_tweets"],
         )

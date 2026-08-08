@@ -13,16 +13,26 @@ Everything the rest of the codebase needs is re-exported here, so
 
 from radius.server.app import asgi_app, create_server, get_server, run
 from radius.server.resources import BOOKMARK_URI, get_bookmark
-from radius.server.tools import MAX_TOP_K, fetch_bookmarks, whoami
+from radius.server.tools import (
+    MAX_TOP_K,
+    bookmarks_by_author,
+    fetch_bookmarks,
+    list_authors,
+    recent_bookmarks,
+    whoami,
+)
 
 __all__ = [
     "BOOKMARK_URI",
     "MAX_TOP_K",
     "asgi_app",
+    "bookmarks_by_author",
     "create_server",
     "fetch_bookmarks",
     "get_bookmark",
     "get_server",
+    "list_authors",
+    "recent_bookmarks",
     "run",
     "whoami",
 ]

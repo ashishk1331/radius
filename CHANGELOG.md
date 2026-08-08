@@ -17,12 +17,34 @@ from `1.0.0` on, breaking any of them requires a major bump.
 - A `bookmark://<id>` resource, so a client can cite a bookmark and re-read it
   by URI rather than searching for it again. Guarded by `bookmarks:read`, the
   same scope as the tools.
+- `recent_bookmarks(n)` — bookmarks without a search query, for browsing the
+  corpus rather than looking something up in it.
+- `bookmarks_by_author(handle, k)` — everything saved from one account. The
+  handle is matched exactly; one that matches nothing returns an empty list
+  rather than widening to the rest of the corpus.
+- `list_authors(n)` — who is in the corpus and how many bookmarks are saved
+  from each, ranked by count descending. `n` defaults to `-1`, meaning all.
+- `TweetResult` and `AuthorResult`, the shapes the three tools above return.
+  Neither carries `score`: it belongs to a search, and none of them search.
+- `RADIUS_DB_PATH=:memory:` keeps the local fallback in RAM. libSQL gives each
+  connection its own in-memory database, so this one is opened once and reused
+  for the life of the process rather than reopened per call.
 
 ### Changed
 
 - `server.py` is now a `server/` package — `tools.py`, `resources.py`,
   `web.py`, and `app.py` for assembly. `from radius.server import ...` is
   unchanged.
+- `fetch_bookmarks` clamps `top_k` to 5–50 rather than 1–50. A request for
+  fewer than five results is widened rather than honoured.
+- Turso credentials belong in `.env.production` rather than `.env.local`, so
+  reaching the hosted database is something `RADIUS_ENV=production` opts you
+  into. The tests and an unconfigured run both fall back to `:memory:`.
+
+### Fixed
+
+- `upsert_author` left `avatar` out of its `ON CONFLICT` clause, so a changed
+  profile image was silently discarded on every re-ingest after the first.
 
 ## [0.1.0] - 2026-07-30
 
