@@ -32,6 +32,7 @@ from starlette.responses import (
 )
 
 from radius.config import PACKAGE_ROOT, Settings
+from radius.server.highlight import highlight
 
 STATIC_DIR = PACKAGE_ROOT / "static"
 
@@ -112,7 +113,7 @@ def page(template: str, version: str = "") -> str:
         body = fragment(match.group(2))
         return "\n".join(indent + line if line else line for line in body.split("\n"))
 
-    rendered = INCLUDE.sub(resolve, source)
+    rendered = highlight(INCLUDE.sub(resolve, source))
 
     if version:
         for asset in VERSIONED:

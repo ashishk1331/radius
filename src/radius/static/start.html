@@ -26,23 +26,23 @@
       it has to be in is below.</p>
 
       <div class="panel">
-<pre><span class="c"># install</span>
+<pre data-lang="sh"># install
 git clone https://github.com/ashishk1331/radius &amp;&amp; cd radius
 uv sync
 cp .env.example .env.local
 
-<span class="c"># the key that signs your tokens</span>
+# the key that signs your tokens
 uv run radius keys init
 
-<span class="c"># the corpus — put the URL and token into .env.production</span>
+# the corpus — put the URL and token into .env.production
 turso db create radius
 turso db show radius --url
 turso db tokens create radius
 
-<span class="c"># load your bookmarks (applies the schema first)</span>
+# load your bookmarks (applies the schema first)
 uv run radius ingest bookmarks.json
 
-<span class="c"># run it, then check: curl 127.0.0.1:9000/health</span>
+# run it, then check: curl 127.0.0.1:9000/health
 uv run radius serve</pre>
       </div>
 
@@ -58,7 +58,7 @@ uv run radius serve</pre>
       upserts on <b>id</b>, so re-running over an overlapping export is safe.</p>
 
       <div class="panel">
-<pre>{
+<pre data-lang="json">{
   "data": [
     {
       "id": "2059675872408260816",
@@ -126,7 +126,7 @@ client is calling — that is almost always the cause. Do not commit
       expiry and a scope, and that is the whole of it.</p>
 
       <div class="panel">
-<pre>TOKEN=$(uv run radius token issue -c claude-code --ttl 2592000 | tail -2 | head -1)
+<pre data-lang="sh">TOKEN=$(uv run radius token issue -c claude-code --ttl 2592000 | tail -2 | head -1)
 
 claude mcp add --transport http radius http://127.0.0.1:9000/mcp \
   --header "Authorization: Bearer $TOKEN"</pre>

@@ -37,9 +37,9 @@ document.querySelectorAll('.clip').forEach(clip => {
   });
 });
 
-document.querySelectorAll('[data-copy]').forEach(button => {
-  const source = button.closest('.copyhead').nextElementSibling.querySelector('pre');
-  button.addEventListener('click', async () => {
+const copies = (source, button) => {
+  let revert;
+  return async () => {
     try {
       await navigator.clipboard.writeText(source.textContent);
       button.textContent = 'Copied';
@@ -47,6 +47,26 @@ document.querySelectorAll('[data-copy]').forEach(button => {
       button.textContent = 'Press ⌘C';
       getSelection().selectAllChildren(source);
     }
-    setTimeout(() => { button.textContent = 'Copy'; }, 2000);
-  });
+    clearTimeout(revert);
+    revert = setTimeout(() => { button.textContent = 'Copy'; }, 2000);
+  };
+};
+
+document.querySelectorAll('[data-copy]').forEach(button => {
+  const source = button.closest('.copyhead').nextElementSibling.querySelector('pre');
+  button.addEventListener('click', copies(source, button));
+});
+
+document.querySelectorAll('.panel > pre').forEach(source => {
+  const panel = source.parentElement;
+  if (panel.closest('.clip')) return;
+
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'copybtn corner';
+  button.textContent = 'Copy';
+  button.addEventListener('click', copies(source, button));
+
+  panel.classList.add('snip');
+  panel.append(button);
 });

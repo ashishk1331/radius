@@ -43,7 +43,8 @@ reformatting.
 
 ```
 src/radius/
-  server/         app.py assembles it; tools.py, resources.py, web.py
+  server/         app.py assembles it; tools.py, resources.py, web.py,
+                  highlight.py colours the code blocks web.py renders
   cli.py          The `radius` command
   config.py       Settings, resolved once from the environment
   ingest.py       Raw bookmark JSON -> upserts

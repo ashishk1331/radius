@@ -343,6 +343,11 @@ p.body + p.body { margin-top: var(--s2); }
   white-space: pre;
 }
 .panel .c { color: var(--ink-soft); }
+.panel pre .k { font-weight: 600; }
+.panel pre .s { color: var(--accent); }
+.panel pre .v { color: var(--accent); font-weight: 600; }
+.panel pre .f,
+.panel pre .p { color: var(--ink-soft); }
 
 .diagram figure { margin: 0; }
 .diagram svg {
@@ -488,6 +493,19 @@ p.body + p.body { margin-top: var(--s2); }
   white-space: nowrap;
 }
 .copybtn:hover { border-color: var(--accent); }
+/* The scroll moves off the panel and onto the <pre> it wraps, so a block that
+   runs wide slides under a button that stays in the corner. The class is added
+   by the script that makes the button, so a page without it keeps scrolling
+   the panel as before. */
+.panel.snip { position: relative; overflow: visible; }
+.panel.snip > pre { overflow-x: auto; padding-right: 6.5em; }
+.copybtn.corner {
+  position: absolute;
+  top: var(--s2);
+  right: var(--s2);
+  z-index: 1;
+  padding: 0.42em 0.95em;
+}
 
 .links a:hover { border-color: var(--accent); }
 .links a.go {
@@ -524,6 +542,10 @@ footer a:hover {
   .rows .r { flex-direction: column; gap: var(--s1); }
   .rows .k { flex: 1 1 auto; color: var(--ink-soft); }
   .panel pre { white-space: pre-wrap; overflow-wrap: break-word; }
+  /* Wrapped code cannot be scrolled clear of the button, and reserving a
+     column for it would cost every line its width on the narrowest screens.
+     Drop the block below the button instead. */
+  .panel.snip > pre { padding-right: 0; padding-top: 2em; }
 }
 
 

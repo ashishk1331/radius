@@ -37,6 +37,15 @@ from `1.0.0` on, breaking any of them requires a major bump.
   unchanged.
 - `fetch_bookmarks` clamps `top_k` to 5–50 rather than 1–50. A request for
   fewer than five results is widened rather than honoured.
+- A copy button in the top-right corner of every code block, added by the
+  script rather than written into each template. The block a reader pastes
+  into their agent keeps the labelled button it already had, so nothing
+  carries two.
+- The code blocks on the documentation pages are syntax-highlighted. Shell and
+  JSON are tokenised at render time and cached with the page, so nothing is
+  fetched and nothing runs in the browser. A block opts in with
+  `<pre data-lang="...">`; the one a reader pastes into their agent is prose,
+  and stays plain.
 - The documentation site is four pages — `/`, `/start`, `/tools`, `/operate` —
   rather than one long scroll, with the head, topbar, nav and footer shared as
   fragments under `static/parts/`. In-page anchors still work within a page;

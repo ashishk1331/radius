@@ -49,14 +49,14 @@
       changes when the code does.</p>
 
       <div class="panel">
-<pre>npx vercel link
+<pre data-lang="sh">npx vercel link
 npx vercel env add TURSO_DATABASE_URL production
 npx vercel env add TURSO_AUTH_TOKEN production
 npx vercel env add JWT_AUDIENCE production
 npx vercel env add RADIUS_PUBLIC_KEY_PEM production &lt; keys/public.pem
 npx vercel --prod
 
-<span class="c"># then set JWT_ISSUER to the deployed URL and redeploy</span></pre>
+# then set JWT_ISSUER to the deployed URL and redeploy</pre>
       </div>
 
       <p class="body">Only the <b>public</b> key reaches Vercel. The private key never leaves
