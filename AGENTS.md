@@ -51,8 +51,10 @@ src/radius/
   models.py       Tweet / SearchResult / TweetResult / AuthorResult
   auth/           keys, scopes, tokens, verifier
   db/             connection, queries, migration.sql, sql/
-  static/         index.html — the homepage template, served at /
-    diagrams/     SVG fragments inlined into it by {{ name }} placeholders
+  static/         index.html, start.html, tools.html, operate.html — one
+                  template per doc page; web.PAGES maps each to its URL
+    parts/        head, topbar, nav, footer — what every page repeats
+    diagrams/     SVG fragments inlined by {{ name }} placeholders
 api/mcp.py        Vercel entrypoint
 public/           styles.css, app.js, favicons, MCP icons, fonts, JWKS.
                   Everything the browser fetches by URL. Static on Vercel
@@ -122,8 +124,9 @@ heading to `## [X.Y.Z] - YYYY-MM-DD` (ISO 8601), open a fresh `[Unreleased]`
 above it, and update the two link references at the foot of the file.
 
 The version string currently lives in three places — `pyproject.toml`,
-`src/radius/__init__.py`, and the topbar in `static/index.html`. Bump all
-three together until they are single-sourced, or they will drift.
+`src/radius/__init__.py`, and the topbar in `static/parts/topbar.html`. Bump
+all three together until they are single-sourced, or they will drift. The
+topbar is one shared fragment, so every page moves with it.
 
 ## Verifying a change
 

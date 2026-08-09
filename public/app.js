@@ -1,20 +1,6 @@
 const toc = document.querySelector('nav');
-const marks = [...document.querySelectorAll('article > section[id]')];
-const links = marks.map(section => toc.querySelector(`a[href="#${section.id}"]`));
-let current = -1;
 
-const atEnd = () =>
-  innerHeight + scrollY >= document.documentElement.scrollHeight - 2;
-
-const locate = () => {
-  if (atEnd()) return marks.length - 1;
-  const line = toc.getBoundingClientRect().bottom + 1;
-  let found = -1;
-  marks.forEach((section, i) => {
-    if (section.getBoundingClientRect().top <= line) found = i;
-  });
-  return found;
-};
+const tidy = path => path.replace(/\/+$/, '') || '/';
 
 const keepInView = link => {
   const bar = toc.getBoundingClientRect();
@@ -24,27 +10,15 @@ const keepInView = link => {
   else if (box.right > bar.right - pad) toc.scrollLeft += box.right - bar.right + pad;
 };
 
-const sync = () => {
-  const next = locate();
-  if (next === current) return;
-  if (links[current]) links[current].removeAttribute('aria-current');
-  current = next;
-  if (links[current]) {
-    links[current].setAttribute('aria-current', 'location');
-    keepInView(links[current]);
-  }
-};
+const here = tidy(location.pathname);
+const active = [...toc.querySelectorAll('a')].find(
+  link => tidy(new URL(link.href).pathname) === here
+);
 
-let queued = false;
-const onScroll = () => {
-  if (queued) return;
-  queued = true;
-  requestAnimationFrame(() => { queued = false; sync(); });
-};
-
-addEventListener('scroll', onScroll, { passive: true });
-addEventListener('resize', onScroll);
-sync();
+if (active) {
+  active.setAttribute('aria-current', 'page');
+  keepInView(active);
+}
 
 document.querySelectorAll('.clip').forEach(clip => {
   const button = document.createElement('button');

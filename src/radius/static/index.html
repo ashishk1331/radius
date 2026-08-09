@@ -1,26 +1,21 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>radius — bookmarks as a searchable corpus</title>
 <meta name="description" content="A personal MCP server that turns saved bookmarks into a searchable, relational corpus and serves it to AI agents over authenticated HTTP.">
-<link rel="icon" href="/favicon.ico" sizes="any">
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-<link rel="apple-touch-icon" href="/apple-touch-icon.png">
-<link rel="manifest" href="/site.webmanifest">
-<meta name="theme-color" content="#FFFFFF">
-<link rel="preload" href="/fonts/figtree-latin.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/styles.css">
+{{ parts/head.html }}
 </head>
 <body>
 
+<svg style="display:none" aria-hidden="true">
+  <symbol id="i-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+    <path d="M2.5 12C2.5 7.52166 2.5 5.28249 3.89124 3.89124C5.28249 2.5 7.52166 2.5 12 2.5C16.4783 2.5 18.7175 2.5 20.1088 3.89124C21.5 5.28249 21.5 7.52166 21.5 12C21.5 16.4783 21.5 18.7175 20.1088 20.1088C18.7175 21.5 16.4783 21.5 12 21.5C7.52166 21.5 5.28249 21.5 3.89124 20.1088C2.5 18.7175 2.5 16.4783 2.5 12Z"></path>
+    <path d="M15 14V12C15 10.5858 15 9.87868 14.5607 9.43934C14.1213 9 13.4142 9 12 9H10M14 10L9 15" stroke-linecap="round" stroke-linejoin="round"></path>
+  </symbol>
+</svg>
+
 <div class="wrap">
-  <header class="topbar eyebrow">
-    <a class="brand" href="/">Radius</a>
-    <span class="version">0.1.0</span>
-  </header>
+  {{ parts/topbar.html }}
 
   <div class="emblem"></div>
 
@@ -31,12 +26,17 @@
     <p>Your links land in a <span class="ul">database you own</span>. Claude — or any
     MCP client — queries them over authenticated HTTP.</p>
 
-    <p>It's built on &#9315; pieces. This page covers setup, the tools, how
-    <em class="s">auth</em> works, and shipping it to production.</p>
+    <p>It's built on &#9315; pieces.
+    <a href="/start"><span>Start</span><svg class="ico"><use href="#i-open"></use></svg></a>
+    covers installing it,
+    <a href="/tools"><span>Tools</span><svg class="ico"><use href="#i-open"></use></svg></a>
+    the calls an agent makes, and
+    <a href="/operate"><span>Operate</span><svg class="ico"><use href="#i-open"></use></svg></a>
+    how <em class="s">auth</em> works and shipping it to production.</p>
   </section>
 
   <div class="pieces">
-    <a class="piece" href="#setup">
+    <a class="piece" href="/start#setup">
       <span class="n">Piece 01</span>
       <span class="t">Ingestion</span>
       <span class="d">Your export upserts into the database, safe to re-run</span>
@@ -46,12 +46,12 @@
       <span class="t">Turso</span>
       <span class="d">One hosted database, the single source of truth</span>
     </a>
-    <a class="piece" href="#tools">
+    <a class="piece" href="/tools#tools">
       <span class="n">Piece 03</span>
       <span class="t">Search</span>
       <span class="d">FTS5 ranking, with fuzzy matching for near misses</span>
     </a>
-    <a class="piece" href="#auth">
+    <a class="piece" href="/operate#auth">
       <span class="n">Piece 04</span>
       <span class="t">Auth</span>
       <span class="d">RS256 tokens, scoped to one tool at a time</span>
@@ -59,20 +59,7 @@
   </div>
 </div>
 
-<nav class="eyebrow">
-  <ul>
-    <li><a href="#what">What</a></li>
-    <li><a href="#setup">Setup</a></li>
-    <li><a href="#agents">Agents</a></li>
-    <li><a href="#connect">Connect</a></li>
-    <li><a href="#tools">Tools</a></li>
-    <li><a href="#auth">Auth</a></li>
-    <li><a href="#commands">Commands</a></li>
-    <li><a href="#deploy">Deploy</a></li>
-    <li><a href="#trouble">Trouble</a></li>
-    <li><a href="#help">Help</a></li>
-  </ul>
-</nav>
+{{ parts/nav.html }}
 
 <div class="wrap">
   <article>
@@ -105,251 +92,18 @@
         <div class="r"><div class="k">Auth</div><div class="v">RS256 JWTs signed by a local key pair, with per-tool scopes</div></div>
         <div class="r"><div class="k">Hosting</div><div class="v">Locally, or as a single Python function on Vercel</div></div>
       </div>
+
     </section>
 
-    <section id="setup">
-      <div class="eyebrow soft">02 &mdash; Setup</div>
-      <h2>Five commands and a database you <em class="s">own</em>.</h2>
-      <p class="body">Needs Python 3.12+ and <b>uv</b>. Radius never scripts a login and
-      never stores a password, which has a consequence worth knowing before you start:
-      <b>it does not ship an exporter</b>. You bring the JSON, from whatever tool already
-      holds your session — a browser extension, a userscript, a cookie-based CLI. The shape
-      it has to be in is below.</p>
+    {{ parts/help.html }}
 
-      <div class="panel">
-<pre><span class="c"># install</span>
-git clone https://github.com/ashishk1331/radius &amp;&amp; cd radius
-uv sync
-cp .env.example .env.local
-
-<span class="c"># the key that signs your tokens</span>
-uv run radius keys init
-
-<span class="c"># the corpus — put the URL and token into .env.local</span>
-turso db create radius
-turso db show radius --url
-turso db tokens create radius
-
-<span class="c"># load your bookmarks (applies the schema first)</span>
-uv run radius ingest bookmarks.json
-
-<span class="c"># run it, then check: curl 127.0.0.1:9000/health</span>
-uv run radius serve</pre>
-      </div>
-
-      <p class="body">Paste the Turso URL and token into <b>.env.local</b> before ingesting.
-      Skip it and radius writes to a local file instead — nothing fails, the rows just are
-      not where you expect. <b>radius migrate</b> prints which database it resolved. Leave
-      the URL unset on purpose and that local file is the whole setup, which is what offline
-      work and the test suite use.</p>
-
-      <h3>The JSON it expects</h3>
-      <p class="body">A top-level <b>data</b> array. Extra fields are ignored. Ingestion
-      upserts on <b>id</b>, so re-running over an overlapping export is safe.</p>
-
-      <div class="panel">
-<pre>{
-  "data": [
-    {
-      "id": "2059675872408260816",
-      "text": "the bookmark text",
-      "createdAt": "Wed May 27 16:39:29 +0000 2026",
-      "author": {
-        "id": "…", "screenName": "handle",
-        "name": "Display Name", "profileImageUrl": "…"
-      },
-      "media": [{ "url": "…", "type": "photo" }]
-    }
-  ]
-}</pre>
-      </div>
-    </section>
-
-    <section id="agents">
-      <div class="eyebrow soft">03 &mdash; For agents</div>
-      <h2>Or hand the whole setup to an <em class="s">agent</em>.</h2>
-      <p class="body">Everything above is the human path. If you would rather not run it
-      yourself, paste the block below into Claude Code — or any agent with shell access.
-      It has the repository, the order of operations, the two questions the agent needs to
-      ask you, and how to tell that it worked.</p>
-      <div class="copyhead">
-        <span>Paste into your agent</span>
-        <button class="copybtn" type="button" data-copy>Copy</button>
-      </div>
-      <div class="clip"><div class="panel"><pre>Set up radius for me — a self-hosted MCP server that makes my saved
-twitter/X bookmarks searchable. Repo: https://github.com/ashishk1331/radius
-
-Read AGENTS.md in the repo before you start, then work through this:
-
-  1. git clone https://github.com/ashishk1331/radius &amp;&amp; cd radius
-  2. uv sync
-  3. cp .env.example .env.local
-  4. uv run radius keys init
-  5. Ask me for a Turso database URL and auth token, and write them into
-     .env.local as TURSO_DATABASE_URL and TURSO_AUTH_TOKEN. If I do not
-     have one, skip this — radius falls back to a local file.
-  6. uv run radius migrate
-  7. Ask me where my twitter/X bookmark JSON export is, then
-     uv run radius ingest &lt;that path&gt;
-  8. uv run radius token issue -c &lt;a short name for this client&gt;
-  9. uv run radius serve
- 10. Register the server with my MCP client, passing the token from
-     step 8 as an Authorization: Bearer header against
-     http://127.0.0.1:9000/mcp
-
-Then call the whoami tool and show me what it returns. It should report
-my client name and the bookmarks:read scope.
-
-If you get a 401, JWT_ISSUER in .env.local has to match the URL the
-client is calling — that is almost always the cause. Do not commit
-.env.local or anything under keys/.</pre></div></div>
-      <p class="body">The agent only needs two things from you: the Turso credentials and
-      the path to your export. Everything else it can read from
-      <b>AGENTS.md</b>, which documents the commands, the layout, and the
-      failure modes worth knowing about.</p>
-    </section>
-
-    <section id="connect">
-      <div class="eyebrow soft">04 &mdash; Connect</div>
-      <h2>Mint a token, point a client at it.</h2>
-      <p class="body">Nothing about an issued token is stored server-side. It carries an
-      expiry and a scope, and that is the whole of it.</p>
-
-      <div class="panel">
-<pre>TOKEN=$(uv run radius token issue -c claude-code --ttl 2592000 | tail -2 | head -1)
-
-claude mcp add --transport http radius http://127.0.0.1:9000/mcp \
-  --header "Authorization: Bearer $TOKEN"</pre>
-      </div>
-
-      <div class="rows">
-        <div class="r"><div class="k">POST /mcp</div><div class="v">The MCP endpoint. Bearer token required. On Vercel this is /api/mcp</div></div>
-        <div class="r"><div class="k">GET /health</div><div class="v">Liveness check. Public</div></div>
-        <div class="r"><div class="k">GET /.well-known/jwks.json</div><div class="v">Published verification keys. Public</div></div>
-      </div>
-
-      <p class="body">The <b>--ttl</b> above is 30 days; leave it off and you get an hour.
-      When a token lapses the connector just stops working and nothing says why. And
-      <b>radius serve</b> has to stay running for a local client to reach it — deploy it if
-      you would rather not babysit a terminal.</p>
-    </section>
-
-    <section id="tools">
-      <div class="eyebrow soft">05 &mdash; Tools &amp; resources</div>
-      <h2>Five tools and one <em class="s">citable</em> URI.</h2>
-      <p class="body">You do not call these yourself. Ask your agent in plain language —
-      <em class="s">what have I saved about local-first software?</em> — and it picks the
-      tool, fills the arguments, and reads the results back to you.</p>
-      <div class="rows">
-        <div class="r"><div class="k">fetch_bookmarks</div><div class="v">Top-k search over the corpus. Takes query, search_mode (exact or fuzzy) and top_k from 5 to 50. Returns id, handle, display name, content, created_at and a score where higher is better</div></div>
-        <div class="r"><div class="k">recent_bookmarks</div><div class="v">Bookmarks without a query. Takes n from 5 to 50 and returns the same fields minus the score, since there is nothing to score against — for when you want to browse the corpus rather than look something up in it</div></div>
-        <div class="r"><div class="k">bookmarks_by_author</div><div class="v">Everything saved from one account. Takes a handle, matched exactly, and k from 5 to 50. A handle you have saved nothing from comes back empty rather than widening to the rest of the corpus</div></div>
-        <div class="r"><div class="k">list_authors</div><div class="v">Who is in the corpus and how much of it is theirs, ranked by count descending. Takes n, or -1 for everyone. The way to find a handle before asking for it — and the answer to who you read most</div></div>
-        <div class="r"><div class="k">whoami</div><div class="v">Echoes the client, scopes, issuer and expiry behind the calling token — the fastest way to confirm a client authenticates as who you think it does</div></div>
-        <div class="r"><div class="k">bookmark://&lt;id&gt;</div><div class="v">One saved bookmark by id, with its author, as application/json. A resource, so the client fetches it by URI rather than the model calling it — which is what keeps a result citable after it scrolls out of context</div></div>
-      </div>
-      <p class="body"><b>Exact</b> ranks inside the database with FTS5 bm25 and returns in
-      about 0.2s warm; the query is FTS5 syntax, so characters it treats as operators need
-      quoting. <b>Fuzzy</b> transfers rows and scores them in process, keeping only matches at
-      85 or above — slower, and the right choice for <em class="s">approximate</em> or
-      misspelled wording.</p>
-    </section>
-
-    <section id="auth">
-      <div class="eyebrow soft">06 &mdash; Auth</div>
-      <h2>Radius is its own token <em class="s">issuer</em>.</h2>
-      <p class="body">One local RSA key pair signs every token, the public half is published
-      as a JWKS, and the server verifies against it. There are no credentials in the
-      database.</p>
-
-      <div class="panel diagram">
-        <figure>
-          {{ diagrams/auth.svg }}
-          <figcaption>The private half never leaves your machine; the public half is all the
-          server needs to verify a token. Both gates sit at the MCP server.</figcaption>
-        </figure>
-      </div>
-
-      <div class="rows">
-        <div class="r"><div class="k">Layer one</div><div class="v">Tokens that are missing, malformed, expired, wrongly signed, or carrying the wrong issuer or audience are rejected before any tool code runs</div></div>
-        <div class="r"><div class="k">Layer two</div><div class="v">A valid token only opens the tools its scope covers. Others are hidden from tools/list, and calling one reports “unknown tool” rather than “forbidden”</div></div>
-        <div class="r"><div class="k">Revocation</div><div class="v">All-or-nothing. Cutting off one token early means rotating the key and reissuing for every client, so keep lifetimes short</div></div>
-      </div>
-    </section>
-
-    <section id="commands">
-      <div class="eyebrow soft">07 &mdash; Commands</div>
-      <h2>Everything runs through one entrypoint.</h2>
-      <div class="rows">
-        <div class="r"><div class="k">radius serve</div><div class="v">Run the MCP server</div></div>
-        <div class="r"><div class="k">radius ingest [file]</div><div class="v">Load bookmarks from a raw JSON export. Applies the schema first</div></div>
-        <div class="r"><div class="k">radius migrate</div><div class="v">Apply the schema on its own. Prints the connection mode it resolved</div></div>
-        <div class="r"><div class="k">radius keys init</div><div class="v">Generate the signing key pair and JWKS. --force rotates and invalidates every issued token</div></div>
-        <div class="r"><div class="k">radius keys show</div><div class="v">Print the public JWKS</div></div>
-        <div class="r"><div class="k">radius token issue</div><div class="v">Mint a token. -c names the client, -s grants a scope, --ttl sets the lifetime</div></div>
-        <div class="r"><div class="k">radius token inspect</div><div class="v">Verify a token and print its claims</div></div>
-      </div>
-    </section>
-
-    <section id="deploy">
-      <div class="eyebrow soft">08 &mdash; Deploy</div>
-      <h2>One Python function, and no port <em class="s">required</em>.</h2>
-      <p class="body">Vercel's own MCP documentation is TypeScript-only, but none of it is
-      needed — the Python runtime runs ASGI apps and runs the lifespan protocol, which is the
-      one thing FastMCP's session manager requires.</p>
-      <p class="body">Code and data ship on separate tracks. Ingestion runs locally against
-      Turso, so new bookmarks are live the moment the job finishes; the deployment only
-      changes when the code does.</p>
-
-      <div class="panel">
-<pre>npx vercel link
-npx vercel env add TURSO_DATABASE_URL production
-npx vercel env add TURSO_AUTH_TOKEN production
-npx vercel env add JWT_AUDIENCE production
-npx vercel env add RADIUS_PUBLIC_KEY_PEM production &lt; keys/public.pem
-npx vercel --prod
-
-<span class="c"># then set JWT_ISSUER to the deployed URL and redeploy</span></pre>
-      </div>
-
-      <p class="body">Only the <b>public</b> key reaches Vercel. The private key never leaves
-      your machine, so tokens can only ever be minted locally. A 401 with a WWW-Authenticate
-      header on the first request is the signal that the whole chain came up.</p>
-    </section>
-
-    <section id="trouble">
-      <div class="eyebrow soft">09 &mdash; When it breaks</div>
-      <h2>The five things that actually go <em class="s">wrong</em>.</h2>
-      <div class="rows">
-        <div class="r"><div class="k">401 on everything</div><div class="v">Issuer and audience are compared exactly, so a token minted before you changed JWT_ISSUER — or before <b>keys init --force</b> — will never verify again. <b>radius token inspect</b> shows what it carries</div></div>
-        <div class="r"><div class="k">Ingest worked, search is empty</div><div class="v">The rows went to a different database. Run <b>radius migrate</b> where you ingested and where you serve, and compare the mode each prints</div></div>
-        <div class="r"><div class="k">fts5: syntax error</div><div class="v">Exact mode passes your query to FTS5 verbatim, so <b>+ - : ^</b> and unbalanced quotes are parse errors. Quote the term, or use fuzzy</div></div>
-        <div class="r"><div class="k">Fuzzy finds nothing</div><div class="v">It keeps only matches scoring 85 or better. Below that was noise, so there is no partial-credit tier — try exact with a shorter keyword</div></div>
-        <div class="r"><div class="k">Ingestion takes minutes</div><div class="v">Every write is a round trip to Turso. A backfill pays that once; incremental runs finish in seconds. A closer Turso region is the cheapest fix</div></div>
-      </div>
-    </section>
-
-    <section id="help">
-      <div class="eyebrow soft">10 &mdash; Help</div>
-      <h2>Stuck, or built something with it? <em class="s">Tell me</em>.</h2>
-      <p class="body">Radius is a personal project rather than a supported product, but I read
-      everything. For anything reproducible, an issue with the command you ran and what came
-      back is the fastest route to a fix. For a quick question, X is easier.</p>
-      <div class="links">
-        <a class="go" href="https://github.com/ashishk1331/radius/issues/new">Open an issue</a>
-        <a href="https://x.com/burntflashlight">@burntflashlight</a>
-        <a href="https://github.com/ashishk1331">GitHub</a>
-      </div>
-    </section>
+    <div class="links pager">
+      <a class="go next" href="/start">Start &rarr;</a>
+    </div>
 
   </article>
 
-  <footer class="quad eyebrow">
-    <div><b>Built by</b><a href="https://github.com/ashishk1331">Ashish Khare</a></div>
-    <div><b>Contact</b><a href="https://x.com/burntflashlight">@burntflashlight</a></div>
-    <div><b>Code</b><a href="https://github.com/ashishk1331/radius">GitHub</a></div>
-    <div><b>License</b><span class="soft">MIT</span></div>
-  </footer>
+  {{ parts/footer.html }}
 </div>
 
 <script src="/app.js" defer></script>

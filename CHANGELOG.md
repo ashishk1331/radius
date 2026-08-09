@@ -37,6 +37,10 @@ from `1.0.0` on, breaking any of them requires a major bump.
   unchanged.
 - `fetch_bookmarks` clamps `top_k` to 5–50 rather than 1–50. A request for
   fewer than five results is widened rather than honoured.
+- The documentation site is four pages — `/`, `/start`, `/tools`, `/operate` —
+  rather than one long scroll, with the head, topbar, nav and footer shared as
+  fragments under `static/parts/`. In-page anchors still work within a page;
+  links to an anchor that has moved to another page do not.
 - Turso credentials belong in `.env.production` rather than `.env.local`, so
   reaching the hosted database is something `RADIUS_ENV=production` opts you
   into. The tests and an unconfigured run both fall back to `:memory:`.

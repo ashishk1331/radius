@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<title>radius — operate</title>
+<meta name="description" content="How radius issues and verifies its own RS256 tokens, how to deploy it as a single Python function on Vercel, and the five things that actually go wrong.">
+{{ parts/head.html }}
+</head>
+<body>
+
+<div class="wrap">
+  {{ parts/topbar.html }}
+</div>
+
+{{ parts/nav.html }}
+
+<div class="wrap">
+  <article>
+
+    <section id="auth">
+      <div class="eyebrow soft">01 &mdash; Auth</div>
+      <h2>Radius is its own token <em class="s">issuer</em>.</h2>
+      <p class="body">One local RSA key pair signs every token, the public half is published
+      as a JWKS, and the server verifies against it. There are no credentials in the
+      database.</p>
+
+      <div class="panel diagram">
+        <figure>
+          {{ diagrams/auth.svg }}
+          <figcaption>The private half never leaves your machine; the public half is all the
+          server needs to verify a token. Both gates sit at the MCP server.</figcaption>
+        </figure>
+      </div>
+
+      <div class="rows">
+        <div class="r"><div class="k">Layer one</div><div class="v">Tokens that are missing, malformed, expired, wrongly signed, or carrying the wrong issuer or audience are rejected before any tool code runs</div></div>
+        <div class="r"><div class="k">Layer two</div><div class="v">A valid token only opens the tools its scope covers. Others are hidden from tools/list, and calling one reports “unknown tool” rather than “forbidden”</div></div>
+        <div class="r"><div class="k">Revocation</div><div class="v">All-or-nothing. Cutting off one token early means rotating the key and reissuing for every client, so keep lifetimes short</div></div>
+      </div>
+    </section>
+
+    <section id="deploy">
+      <div class="eyebrow soft">02 &mdash; Deploy</div>
+      <h2>One Python function, and no port <em class="s">required</em>.</h2>
+      <p class="body">Vercel's own MCP documentation is TypeScript-only, but none of it is
+      needed — the Python runtime runs ASGI apps and runs the lifespan protocol, which is the
+      one thing FastMCP's session manager requires.</p>
+      <p class="body">Code and data ship on separate tracks. Ingestion runs locally against
+      Turso, so new bookmarks are live the moment the job finishes; the deployment only
+      changes when the code does.</p>
+
+      <div class="panel">
+<pre>npx vercel link
+npx vercel env add TURSO_DATABASE_URL production
+npx vercel env add TURSO_AUTH_TOKEN production
+npx vercel env add JWT_AUDIENCE production
+npx vercel env add RADIUS_PUBLIC_KEY_PEM production &lt; keys/public.pem
+npx vercel --prod
+
+<span class="c"># then set JWT_ISSUER to the deployed URL and redeploy</span></pre>
+      </div>
+
+      <p class="body">Only the <b>public</b> key reaches Vercel. The private key never leaves
+      your machine, so tokens can only ever be minted locally. A 401 with a WWW-Authenticate
+      header on the first request is the signal that the whole chain came up.</p>
+    </section>
+
+    <section id="trouble">
+      <div class="eyebrow soft">03 &mdash; When it breaks</div>
+      <h2>The five things that actually go <em class="s">wrong</em>.</h2>
+      <div class="rows">
+        <div class="r"><div class="k">401 on everything</div><div class="v">Issuer and audience are compared exactly, so a token minted before you changed JWT_ISSUER — or before <b>keys init --force</b> — will never verify again. <b>radius token inspect</b> shows what it carries</div></div>
+        <div class="r"><div class="k">Ingest worked, search is empty</div><div class="v">The rows went to a different database. Run <b>radius migrate</b> where you ingested and where you serve, and compare the mode each prints — an unconfigured run resolves to <b>:memory:</b> and keeps nothing</div></div>
+        <div class="r"><div class="k">fts5: syntax error</div><div class="v">Exact mode passes your query to FTS5 verbatim, so <b>+ - : ^</b> and unbalanced quotes are parse errors. Quote the term, or use fuzzy</div></div>
+        <div class="r"><div class="k">Fuzzy finds nothing</div><div class="v">It keeps only matches scoring 85 or better. Below that was noise, so there is no partial-credit tier — try exact with a shorter keyword</div></div>
+        <div class="r"><div class="k">Ingestion takes minutes</div><div class="v">Every write is a round trip to Turso. A backfill pays that once; incremental runs finish in seconds. A closer Turso region is the cheapest fix</div></div>
+      </div>
+    </section>
+
+    {{ parts/help.html }}
+
+    <div class="links pager">
+      <a href="/tools">&larr; Tools</a>
+    </div>
+
+  </article>
+
+  {{ parts/footer.html }}
+</div>
+
+<script src="/app.js" defer></script>
+
+</body>
+</html>

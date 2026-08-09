@@ -144,11 +144,24 @@ em.s {
   padding: var(--s3) 0 var(--s4);
 }
 .brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55em;
   font-size: clamp(16px, 1.7vw, 18px);
   font-weight: 500;
   letter-spacing: 0;
   color: var(--ink);
   text-decoration: none;
+}
+.mark {
+  flex: none;
+  width: 1.55em;
+  height: 1.55em;
+  border-radius: 0.42em;
+  background: url("/mcp-icons/logo-256.png") center / contain no-repeat;
+}
+:root[data-theme="dark"] .mark {
+  background-image: url("/mcp-icons/logo-dark-256.png");
 }
 .emblem {
   width: clamp(60px, 9vw, 96px);
@@ -176,6 +189,27 @@ em.s {
   text-wrap: balance;
 }
 .hero p + p { margin-top: var(--s4); }
+/* Accent, not the browser's blue — matching the italics beside them, which are
+   the other thing the hero picks out at this size. The rule sits on the inner
+   span rather than the link, so it underlines the word and not the icon. */
+.hero a {
+  color: var(--accent);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.hero a span {
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+  text-underline-offset: 0.1em;
+  text-decoration-thickness: 0.055em;
+}
+.hero a:hover span { text-decoration-thickness: 0.11em; }
+.ico {
+  width: 0.58em;
+  height: 0.58em;
+  margin-left: 0.1em;
+  vertical-align: baseline;
+}
 
 .quad {
   display: grid;
@@ -461,6 +495,16 @@ p.body + p.body { margin-top: var(--s2); }
   border-color: var(--ink);
   color: var(--bg);
 }
+/* Back sits left, next sits right, whichever of the two a page has. The help
+   section above already pads by --s6, so the space this adds is below: the
+   pager is the last child of <article>, where the section padding-bottom rule
+   no longer reaches, and without it the buttons sit on the footer rule. */
+.pager {
+  justify-content: space-between;
+  margin-top: 0;
+  margin-bottom: var(--s5);
+}
+.pager .next { margin-left: auto; }
 
 footer { border-top: 1px solid var(--rule); padding: var(--s4) 0 var(--s5); }
 footer a { color: var(--ink); text-decoration: none; }

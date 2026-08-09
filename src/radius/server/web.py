@@ -5,12 +5,17 @@ browser landing on the deployment finds a page, and so MCP clients can fetch the
 icons the server advertises. On Vercel the same files are served statically from
 ``public/``; these routes are what make `radius serve` match that locally.
 
-The page is split by how each piece reaches the browser. Anything fetched by URL
+The site is split by how each piece reaches the browser. Anything fetched by URL
 — the stylesheet, the script, the fonts, the icons — lives in ``public/`` so
-Vercel serves it straight from its CDN. The HTML template and the SVG fragments
-it composes stay in the package, because the homepage is rendered by the
+Vercel serves it straight from its CDN. The HTML templates and the fragments
+they compose stay in the package, because the pages are rendered by the
 function, and because an inlined diagram inherits the page's theme variables
 where one loaded through ``<img>`` could not.
+
+Documentation is four pages rather than one, so a reader lands on the part they
+came for instead of scrolling past the rest. ``parts/`` holds what every page
+repeats — the head, the topbar, the nav, the footer — composed by the same
+``{{ fragment }}`` mechanism the diagrams use.
 """
 
 import re
@@ -55,6 +60,15 @@ SITE_ASSETS = {
 
 INCLUDE = re.compile(r"^([ \t]*)\{\{\s*([\w./-]+)\s*\}\}[ \t]*$", re.MULTILINE)
 
+# URL path -> template. The nav links these in this order, and nothing outside
+# the mapping is renderable, so a request cannot name an arbitrary file.
+PAGES = {
+    "/": "index.html",
+    "/start": "start.html",
+    "/tools": "tools.html",
+    "/operate": "operate.html",
+}
+
 
 def fragment(name: str) -> str:
     """Read one template fragment, refusing any name that escapes ``static/``."""
@@ -64,22 +78,52 @@ def fragment(name: str) -> str:
     return path.read_text(encoding="utf-8").strip()
 
 
-@lru_cache(maxsize=1)
-def homepage() -> str:
-    """The rendered page, with every ``{{ fragment }}`` composed in.
+# The two assets that change while you are looking at the page. Neither has a
+# hash in its filename, so a browser holding a still-fresh copy will not even
+# ask whether it changed — a plain refresh renders new HTML against old CSS.
+# Stamping the URL with the file's mtime makes it a different URL instead,
+# which no cached entry can answer.
+VERSIONED = ("/styles.css", "/app.js")
 
-    Diagrams live in their own files so one can be edited without scrolling
-    past the rest of the page. They are resolved once, here, rather than on
-    each request.
+
+def asset_version(config: Settings) -> str:
+    """A token that changes whenever the stylesheet or the script does."""
+    stamps = [
+        int(path.stat().st_mtime)
+        for name in VERSIONED
+        if (path := config.root / "public" / name.lstrip("/")).is_file()
+    ]
+    return str(max(stamps)) if stamps else "0"
+
+
+@lru_cache(maxsize=4 * len(PAGES))
+def page(template: str, version: str = "") -> str:
+    """One rendered page, with every ``{{ fragment }}`` composed in.
+
+    Diagrams and the parts every page repeats live in their own files, so one
+    can be edited without scrolling past the rest. They are resolved once,
+    here, rather than on each request — keyed by ``version`` so a changed
+    asset renders a fresh page rather than serving the cached one.
     """
-    template = (STATIC_DIR / "index.html").read_text(encoding="utf-8")
+    source = fragment(template)
 
     def resolve(match: re.Match) -> str:
         indent = match.group(1)
         body = fragment(match.group(2))
         return "\n".join(indent + line if line else line for line in body.split("\n"))
 
-    return INCLUDE.sub(resolve, template)
+    rendered = INCLUDE.sub(resolve, source)
+
+    if version:
+        for asset in VERSIONED:
+            rendered = rendered.replace(f'"{asset}"', f'"{asset}?v={version}"')
+
+    return rendered
+
+
+def homepage() -> str:
+    """The rendered landing page."""
+    return page(PAGES["/"])
 
 
 def server_icons(config: Settings) -> list[Icon]:
@@ -111,12 +155,17 @@ async def site_asset_route(
     return public_asset(config, name, cache=cache)
 
 
-def register_routes(mcp: FastMCP, config: Settings) -> None:
-    """Mount the homepage, the stylesheet and script, the icons, and the fonts."""
+async def page_route(config: Settings, template: str, request: Request) -> HTMLResponse:
+    return HTMLResponse(page(template, asset_version(config)))
 
-    @mcp.custom_route("/", methods=["GET"])
-    async def home_route(request: Request) -> HTMLResponse:
-        return HTMLResponse(homepage())
+
+def register_routes(mcp: FastMCP, config: Settings) -> None:
+    """Mount the doc pages, the stylesheet and script, the icons, and the fonts."""
+
+    for path, template in PAGES.items():
+        mcp.custom_route(path, methods=["GET"], name=f"page-{template}")(
+            partial(page_route, config, template)
+        )
 
     @mcp.custom_route("/mcp-icons/{name}", methods=["GET"])
     async def mcp_icon_route(request: Request) -> Response:
