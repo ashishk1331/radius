@@ -80,11 +80,11 @@ def seeded_config(config: Settings) -> Settings:
         )
         con.execute(
             QUERIES["UPSERT"]["TWEET"],
-            ("100", "1", "rust is blazing fast", "2026-01-01", None, None),
+            ("100", "1", "rust is blazing fast", "2026-01-01", None, None, None),
         )
         con.execute(
             QUERIES["UPSERT"]["TWEET"],
-            ("200", "1", "sqlite is a fine database", "2026-01-02", None, None),
+            ("200", "1", "sqlite is a fine database", "2026-01-02", None, None, None),
         )
     return config
 
@@ -135,5 +135,5 @@ def add_bookmarks(
             stamp = (BASE_TIME + timedelta(days=n)).strftime(TWITTER_TIME)
             con.execute(
                 QUERIES["UPSERT"]["TWEET"],
-                (str(BASE_ID + n), author_id, f"bookmark {n}", stamp, None, None),
+                (str(BASE_ID + n), author_id, f"bookmark {n}", stamp, None, None, None),
             )

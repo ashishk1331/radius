@@ -1,4 +1,4 @@
-"""The ``radius`` command line: serve, migrate, ingest, and manage tokens."""
+"""The ``radius`` command line: serve, migrate, sync, ingest, and manage tokens."""
 
 import argparse
 import json
@@ -10,7 +10,8 @@ from joserfc.errors import JoseError
 from radius.auth import keys, scopes, tokens
 from radius.config import PACKAGE_ROOT, settings
 from radius.db import migrate, mode
-from radius.ingest import ingest
+from radius.ingest import STORE, ingest
+from radius.sync import LARGEST, START, sync
 from radius.server import get_server
 
 
@@ -44,6 +45,33 @@ def cmd_migrate(args: argparse.Namespace) -> None:
 def cmd_ingest(args: argparse.Namespace) -> None:
     count = ingest(args.source, args.db)
     print(f"Ingested {count} bookmarks")
+
+
+def cmd_sync(args: argparse.Namespace) -> None:
+    """Pull new bookmarks, then load them into the database.
+
+    The database is opened before a single tweet is fetched. Pulling takes
+    minutes of sleeps and rate-limited calls, and discovering at the end of it
+    that nothing can be written would waste the whole run.
+    """
+    config = settings()
+    store = args.store or config.root / STORE
+    resolved = mode(config)
+
+    if resolved == "memory" and not args.allow_memory:
+        raise RuntimeError(
+            "the database resolves to :memory:, which is discarded when this "
+            "command exits — a sync would fetch your bookmarks and then throw "
+            "them away. Set TURSO_DATABASE_URL (or RADIUS_DB_PATH) first, or "
+            "pass --allow-memory if that is really what you want."
+        )
+
+    print(f"Database: {migrate(args.db, config)} ({resolved} mode)")
+
+    fetched = sync(start=args.start, force=args.force, store=store)
+    print(f"Fetched {fetched} new bookmarks into {store}")
+
+    print(f"Ingested {ingest(store, args.db, config)} bookmarks")
 
 
 def cmd_keys_init(args: argparse.Namespace) -> None:
@@ -108,6 +136,33 @@ def build_parser() -> argparse.ArgumentParser:
     )
     ingest_parser.add_argument("--db", type=Path, help="Database path.")
     ingest_parser.set_defaults(func=cmd_ingest)
+
+    sync_parser = sub.add_parser(
+        "sync", help="Pull new bookmarks from X, then load them into the database."
+    )
+    sync_parser.add_argument(
+        "--store", type=Path, help=f"JSONL store to append to. Defaults to {STORE}."
+    )
+    sync_parser.add_argument("--db", type=Path, help="Database path.")
+    sync_parser.add_argument(
+        "--start",
+        type=int,
+        default=START,
+        metavar="N",
+        help=f"Ask for 2**N bookmarks on the first round, doubling to 2**{LARGEST}. "
+        f"Defaults to {START}.",
+    )
+    sync_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Keep widening past the first round that finds nothing new.",
+    )
+    sync_parser.add_argument(
+        "--allow-memory",
+        action="store_true",
+        help="Sync even when the database is :memory: and the rows will be lost.",
+    )
+    sync_parser.set_defaults(func=cmd_sync)
 
     key_parser = sub.add_parser("keys", help="Manage the token signing key pair.")
     key_sub = key_parser.add_subparsers(dest="keys_command", required=True)

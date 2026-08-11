@@ -32,11 +32,31 @@ from `1.0.0` on, breaking any of them requires a major bump.
 
 ### Changed
 
+- `ingest` reads `bookmarks.jsonl` by default — the store `radius sync`
+  appends to. A `.json` export still loads as it did.
+- `ingest` accepts a `Settings`, so a caller can name the database it writes
+  to rather than inheriting whatever the environment resolves to.
 - `server.py` is now a `server/` package — `tools.py`, `resources.py`,
   `web.py`, and `app.py` for assembly. `from radius.server import ...` is
   unchanged.
 - `fetch_bookmarks` clamps `top_k` to 5–50 rather than 1–50. A request for
   fewer than five results is widened rather than honoured.
+- `radius sync` — pull new bookmarks from the `twitter` CLI into a JSONL
+  store, then load that store. The database is opened before a single tweet is
+  fetched, and a run resolving to `:memory:` is refused rather than discovered
+  after minutes of rate-limited calls; `--allow-memory` overrides it.
+- `radius.sync` — the pull itself. One tweet per line: a bookmark, the
+  author's own replies continuing it, and the tweet it quotes along with that
+  tweet's replies. The quoted tweet is fetched rather than taken from the
+  bookmark, which carries only an id, a text and a handle.
+- `tweets.embedding` — a float32 vector of the tweet body, from
+  `BAAI/bge-small-en-v1.5`. The model is pinned, because its output is stored
+  and a change of default would write vectors nothing could tell apart, and
+  loaded lazily, because `radius.cli` imports its way here and every command
+  would otherwise pay to load onnxruntime. Nothing reads the column yet.
+- `in_reply_to_id` and `quoted_tweet_id` are filled in by ingestion. Storage
+  stays flat — one row per tweet, the columns are edges between rows — and no
+  query follows them yet, so a reply is still returned as a result of its own.
 - A copy button in the top-right corner of every code block, added by the
   script rather than written into each template. The block a reader pastes
   into their agent keeps the labelled button it already had, so nothing
