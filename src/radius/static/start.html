@@ -21,9 +21,12 @@
       <h2>Five commands and a database you <em class="s">own</em>.</h2>
       <p class="body">Needs Python 3.12+ and <b>uv</b>. Radius never scripts a login and
       never stores a password, which has a consequence worth knowing before you start:
-      <b>it does not ship an exporter</b>. You bring the JSON, from whatever tool already
-      holds your session — a browser extension, a userscript, a cookie-based CLI. The shape
-      it has to be in is below.</p>
+      <b>it does not ship an exporter</b>. <b>radius sync</b> drives the <b>twitter</b> CLI
+      if you have one installed and signed in; otherwise you bring the JSON from whatever
+      tool already holds your session, and <b>radius ingest</b> reads it. The shape it has
+      to be in is below.</p>
+      <p class="body">The first load also downloads a 67MB embedding model and embeds every
+      tweet body. Nothing searches those vectors yet — that is groundwork.</p>
 
       <div class="panel">
 <pre data-lang="sh"># install
@@ -39,8 +42,8 @@ turso db create radius
 turso db show radius --url
 turso db tokens create radius
 
-# load your bookmarks (applies the schema first)
-uv run radius ingest bookmarks.json
+# pull your bookmarks and load them (applies the schema first)
+uv run radius sync
 
 # run it, then check: curl 127.0.0.1:9000/health
 uv run radius serve</pre>
@@ -53,9 +56,20 @@ uv run radius serve</pre>
       ships as <b>:memory:</b> — nothing fails, the rows just are not anywhere afterwards.
       <b>radius migrate</b> prints which database it resolved.</p>
 
-      <h3>The JSON it expects</h3>
-      <p class="body">A top-level <b>data</b> array. Extra fields are ignored. Ingestion
-      upserts on <b>id</b>, so re-running over an overlapping export is safe.</p>
+      <h3>What sync writes</h3>
+      <p class="body">One tweet per line in <b>bookmarks.jsonl</b> — a bookmark, the
+      author's own replies continuing it, and the tweet it quotes. Each carries the id of
+      the one it answers, and every one of them becomes a row of its own.</p>
+
+      <div class="panel">
+<pre data-lang="json">{"id": "…", "text": "…", "createdAt": "…", "author": {…}, "in_reply_to": null}
+{"id": "…", "text": "…", "createdAt": "…", "author": {…}, "in_reply_to": "…"}</pre>
+      </div>
+
+      <h3>The JSON it also expects</h3>
+      <p class="body">A <b>.json</b> file is read as the older shape instead: a top-level
+      <b>data</b> array. Extra fields are ignored either way. Ingestion upserts on
+      <b>id</b>, so re-running over an overlapping export is safe.</p>
 
       <div class="panel">
 <pre data-lang="json">{
@@ -99,8 +113,11 @@ Read AGENTS.md in the repo before you start, then work through this:
      .env.production as TURSO_DATABASE_URL and TURSO_AUTH_TOKEN. If I do
      not have one, skip this — radius falls back to an in-memory database.
   6. uv run radius migrate
-  7. Ask me where my twitter/X bookmark JSON export is, then
-     uv run radius ingest &lt;that path&gt;
+  7. uv run radius sync — this pulls my bookmarks through the twitter
+     CLI and loads them. If that CLI is not installed, ask me where my
+     bookmark JSON export is instead and run uv run radius ingest
+     &lt;that path&gt;. Either way the first run downloads a 67MB
+     embedding model, so give it a minute.
   8. uv run radius token issue -c &lt;a short name for this client&gt;
   9. uv run radius serve
  10. Register the server with my MCP client, passing the token from
@@ -113,10 +130,10 @@ my client name and the bookmarks:read scope.
 If you get a 401, JWT_ISSUER in .env.local has to match the URL the
 client is calling — that is almost always the cause. Do not commit
 .env.local, .env.production, or anything under keys/.</pre></div></div>
-      <p class="body">The agent only needs two things from you: the Turso credentials and
-      the path to your export. Everything else it can read from
-      <b>AGENTS.md</b>, which documents the commands, the layout, and the
-      failure modes worth knowing about.</p>
+      <p class="body">The agent only needs the Turso credentials from you, and a path to
+      your export if <b>radius sync</b> has no CLI to drive. Everything else it can read
+      from <b>AGENTS.md</b>, which documents the commands, the layout, and the failure
+      modes worth knowing about.</p>
     </section>
 
     <section id="connect">

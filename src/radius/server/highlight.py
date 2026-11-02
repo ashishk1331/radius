@@ -1,18 +1,18 @@
 """Colouring for the code blocks on the documentation pages.
 
-The panels hold three shell sessions and one JSON sample. That is a small
-enough surface that a highlighting dependency would outweigh what it buys, and
-the blocks are already HTML-escaped in the templates, so they are tokenised
-here instead and the result is cached along with the rendered page.
+The panels hold shell sessions and JSON — a small enough surface that a
+highlighting dependency would outweigh what it buys, and already HTML-escaped
+in the templates, so they are tokenised here instead and the result is cached
+along with the rendered page.
 
 The one rule that matters: a highlighter that changed what a reader copies
 would be worse than no highlighter at all. Every token is passed through
 verbatim and only wrapped, entities included, which the tests check by
 stripping the spans back off and comparing against the input.
 
-Marking up a block is opt-in, through ``<pre data-lang="...">``. The block on
-`/start` that a reader pastes into their agent is prose rather than code, and
-carries no attribute, so nothing touches it.
+Marking up a block is opt-in, through ``<pre data-lang="...">``. A block that
+names no language is left alone, which is how prose meant for pasting stays
+out of the tokeniser.
 """
 
 import re

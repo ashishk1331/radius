@@ -50,12 +50,14 @@
       <h2>Everything runs through one entrypoint.</h2>
       <div class="rows">
         <div class="r"><div class="k">radius serve</div><div class="v">Run the MCP server</div></div>
-        <div class="r"><div class="k">radius ingest [file]</div><div class="v">Load bookmarks from a raw JSON export. Applies the schema first</div></div>
+        <div class="r"><div class="k">radius sync</div><div class="v">Pull the bookmarks the store does not already hold — with the replies under them and the tweets they quote — then load them. Opens the database before fetching anything, and refuses a run whose rows would be discarded</div></div>
+        <div class="r"><div class="k">radius ingest [file]</div><div class="v">Load an export without pulling. Applies the schema first. Defaults to <b>bookmarks.jsonl</b>, the store sync writes; a <b>.json</b> file is read as the older shape</div></div>
         <div class="r"><div class="k">radius migrate</div><div class="v">Apply the schema on its own. Prints the connection mode it resolved</div></div>
         <div class="r"><div class="k">radius keys init</div><div class="v">Generate the signing key pair and JWKS. --force rotates and invalidates every issued token</div></div>
         <div class="r"><div class="k">radius keys show</div><div class="v">Print the public JWKS</div></div>
         <div class="r"><div class="k">radius token issue</div><div class="v">Mint a token. -c names the client, -s grants a scope, --ttl sets the lifetime</div></div>
         <div class="r"><div class="k">radius token inspect</div><div class="v">Verify a token and print its claims</div></div>
+        <div class="r"><div class="k">radius token list</div><div class="v">Show what has been issued, from the local record</div></div>
       </div>
 
     </section>

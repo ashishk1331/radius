@@ -20,7 +20,7 @@ of the codebase is written accordingly: there is no ``row_factory`` (use
 scoring happens in Python — see :mod:`radius.search`).
 """
 
-from collections.abc import Iterator
+from collections.abc import Generator
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Literal
@@ -69,7 +69,7 @@ def _open(target: str, config: Settings) -> tuple[libsql.Connection, bool]:
 @contextmanager
 def connect(
     path: Path | None = None, config: Settings | None = None
-) -> Iterator[libsql.Connection]:
+) -> Generator[libsql.Connection]:
     """Open a connection, commit on clean exit, roll back on error, always close.
 
     The in-memory database is the exception to "always close": it is kept open

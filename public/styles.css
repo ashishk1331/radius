@@ -232,12 +232,29 @@ em.s {
   padding: var(--s3);
   color: var(--ink);
   text-decoration: none;
+  outline: 1.5px solid transparent;
+  transition: outline-color 0.15s ease;
 }
 .piece .n {
   font-size: var(--t-label);
   font-weight: 600;
   color: var(--ink-soft);
   margin-bottom: var(--s3);
+}
+.piece .h {
+  display: flex;
+  align-items: center;
+  gap: 0.1em;
+  font-size: var(--t-h3);
+}
+.piece .go {
+  flex: none;
+  width: 0.62em;
+  height: 0.62em;
+  margin: 0;
+  color: var(--accent);
+  opacity: 0;
+  transition: opacity 0.15s ease;
 }
 .piece .t {
   font-size: var(--t-h3);
@@ -252,7 +269,12 @@ em.s {
   color: var(--ink-soft);
   margin-top: var(--s1);
 }
-.piece:hover .t {
+.piece:hover,
+.piece:focus-visible { outline-color: var(--accent); }
+.piece:hover .go,
+.piece:focus-visible .go { opacity: 1; }
+.piece:hover .t,
+.piece:focus-visible .t {
   text-decoration: underline;
   text-decoration-color: var(--accent);
   text-decoration-thickness: 2px;

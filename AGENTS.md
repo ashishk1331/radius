@@ -31,10 +31,12 @@ and never paste a private key or a Turso token into a chat or a commit.
 | `uv run pytest` | The full suite. Run before every commit |
 | `uv run radius serve` | Run the server. Reloads on change; pass `--no-reload` for a long-lived deployment |
 | `uv run radius migrate` | Apply the schema |
-| `uv run radius ingest FILE` | Upsert bookmarks from a JSON export |
+| `uv run radius sync` | Pull new bookmarks and their threads, then load them |
+| `uv run radius ingest FILE` | Load an export without pulling. Defaults to `bookmarks.jsonl` |
 | `uv run radius keys init` | Generate the RS256 key pair and JWKS |
 | `uv run radius token issue -c NAME` | Mint a token for a client |
 | `uv run radius token inspect TOKEN` | Verify a token and print its claims |
+| `uv run radius token list` | Show what has been issued, from the local record |
 
 There is no linter configured. Match the surrounding style rather than
 reformatting.
@@ -45,9 +47,11 @@ reformatting.
 src/radius/
   server/         app.py assembles it; tools.py, resources.py, web.py,
                   highlight.py colours the code blocks web.py renders
+  sync.py         pulls bookmarks and their threads into bookmarks.jsonl
+  ingest.py       reads that store into the database
+  embed.py        the pinned model behind tweets.embedding
   cli.py          The `radius` command
   config.py       Settings, resolved once from the environment
-  ingest.py       Raw bookmark JSON -> upserts
   search.py       Fuzzy ranking (rapidfuzz)
   models.py       Tweet / SearchResult / TweetResult / AuthorResult
   auth/           keys, scopes, tokens, verifier
@@ -104,6 +108,12 @@ rapidfuzz `partial_ratio` and keeps matches of 85 or above.
   `website_url` are derived from it, so a wrong value breaks more than auth.
 - **Every Turso write is a network round trip.** A backfill takes minutes; an
   incremental run takes seconds. This is expected, not a hang.
+- **`radius sync` sleeps between calls on purpose**, and the first ingestion
+  downloads a 67MB embedding model. Neither is a hang either.
+- **The schema ends in an `ALTER TABLE`**, which is not idempotent, and
+  `migrate` runs it through `executescript`, which swallows the failure and
+  everything after it. A statement appended below that line will silently
+  never run on a database that already exists.
 - **Exact search passes the query to FTS5 verbatim**, so `+ - : ^` and
   unbalanced quotes are parse errors rather than empty results.
 - **The homepage is cached in memory** by `@lru_cache`, which is why

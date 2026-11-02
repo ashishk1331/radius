@@ -12,10 +12,10 @@ they compose stay in the package, because the pages are rendered by the
 function, and because an inlined diagram inherits the page's theme variables
 where one loaded through ``<img>`` could not.
 
-Documentation is four pages rather than one, so a reader lands on the part they
-came for instead of scrolling past the rest. ``parts/`` holds what every page
-repeats — the head, the topbar, the nav, the footer — composed by the same
-``{{ fragment }}`` mechanism the diagrams use.
+Documentation is split across the pages in ``PAGES`` rather than one long
+scroll, so a reader lands on the part they came for. ``parts/`` holds what
+every page repeats — the head, the topbar, the nav, the footer — composed by
+the same ``{{ fragment }}`` mechanism the diagrams use.
 """
 
 import re

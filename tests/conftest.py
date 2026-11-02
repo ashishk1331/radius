@@ -54,6 +54,7 @@ def config(tmp_path) -> Settings:
         private_key_path=tmp_path / "keys" / "private.pem",
         public_key_path=tmp_path / "keys" / "public.pem",
         jwks_path=tmp_path / "public" / ".well-known" / "jwks.json",
+        ledger_path=tmp_path / "keys" / "issued.jsonl",
         public_key_pem=None,
         jwks_uri=None,
         issuer="http://test-issuer",

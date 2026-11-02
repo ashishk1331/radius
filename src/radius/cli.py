@@ -2,12 +2,14 @@
 
 import argparse
 import json
+import time
+from datetime import datetime
 from pathlib import Path
 
 import uvicorn
 from joserfc.errors import JoseError
 
-from radius.auth import keys, scopes, tokens
+from radius.auth import keys, ledger, scopes, tokens
 from radius.config import PACKAGE_ROOT, settings
 from radius.db import migrate, mode
 from radius.ingest import STORE, ingest
@@ -89,8 +91,9 @@ def cmd_keys_show(args: argparse.Namespace) -> None:
 
 
 def cmd_token_issue(args: argparse.Namespace) -> None:
-    token = tokens.issue(args.client, args.scope, args.ttl)
     config = settings()
+    token, claims = tokens.mint(args.client, args.scope, args.ttl, config)
+    ledger.record(claims, config)
     print(
         f"Client:    {args.client}\n"
         f"Scopes:    {' '.join(args.scope or scopes.DEFAULT_SCOPES)}\n"
@@ -103,14 +106,50 @@ def cmd_token_issue(args: argparse.Namespace) -> None:
 def cmd_token_inspect(args: argparse.Namespace) -> None:
     print(json.dumps(tokens.inspect(args.token), indent=2))
 
+def _stamp(epoch: int | None) -> str:
+    return datetime.fromtimestamp(epoch).strftime("%Y-%m-%d %H:%M") if epoch else "?"
 
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        prog="radius",
-        description="Search your bookmarks, and serve them to agents over MCP.",
+
+def _table(header: tuple[str, ...], rows: list[tuple[str, ...]]) -> str:
+    widths = [max(len(row[column]) for row in (header, *rows)) for column in range(len(header))]
+    return "\n".join(
+        "  ".join(cell.ljust(width) for cell, width in zip(row, widths)).rstrip()
+        for row in (header, *rows)
     )
-    sub = parser.add_subparsers(title="commands", dest="command", required=True)
 
+
+def cmd_token_list(args: argparse.Namespace) -> None:
+    """What has been issued, read from the local ledger.
+
+    Not a list of what the server would accept. Tokens are verified by
+    signature alone and nothing is stored server-side, so a token missing from
+    this file still works and one listed here is not revoked by removing it.
+    """
+    config = settings()
+    now = int(time.time())
+
+    rows = [
+        (
+            str(entry.get("sub") or "?"),
+            str(entry.get("scope") or ""),
+            _stamp(entry.get("iat")),
+            _stamp(entry.get("exp")),
+            "expired" if (entry.get("exp") or 0) <= now else "active",
+        )
+        for entry in ledger.read(config)
+    ]
+
+    if not rows:
+        print(f"No tokens recorded in {config.ledger_path}")
+        return
+
+    print(_table(("CLIENT", "SCOPES", "ISSUED", "EXPIRES", "STATUS"), rows))
+
+
+Commands = argparse._SubParsersAction
+
+
+def add_serve(sub: Commands) -> None:
     serve = sub.add_parser("serve", help="Run the MCP server.")
     serve.add_argument("--host", help="Override RADIUS_HOST.")
     serve.add_argument("--port", type=int, help="Override RADIUS_PORT.")
@@ -122,29 +161,29 @@ def build_parser() -> argparse.ArgumentParser:
     )
     serve.set_defaults(func=cmd_serve)
 
-    migrate_parser = sub.add_parser(
-        "migrate", help="Create or update the SQLite schema."
-    )
-    migrate_parser.add_argument("--db", type=Path, help="Database path.")
-    migrate_parser.set_defaults(func=cmd_migrate)
 
-    ingest_parser = sub.add_parser(
-        "ingest", help="Load bookmarks from a raw JSON export."
-    )
-    ingest_parser.add_argument(
-        "source", nargs="?", type=Path, help="Path to the JSON export."
-    )
-    ingest_parser.add_argument("--db", type=Path, help="Database path.")
-    ingest_parser.set_defaults(func=cmd_ingest)
+def add_migrate(sub: Commands) -> None:
+    parser = sub.add_parser("migrate", help="Create or update the SQLite schema.")
+    parser.add_argument("--db", type=Path, help="Database path.")
+    parser.set_defaults(func=cmd_migrate)
 
-    sync_parser = sub.add_parser(
+
+def add_ingest(sub: Commands) -> None:
+    parser = sub.add_parser("ingest", help="Load bookmarks from a raw JSON export.")
+    parser.add_argument("source", nargs="?", type=Path, help="Path to the JSON export.")
+    parser.add_argument("--db", type=Path, help="Database path.")
+    parser.set_defaults(func=cmd_ingest)
+
+
+def add_sync(sub: Commands) -> None:
+    parser = sub.add_parser(
         "sync", help="Pull new bookmarks from X, then load them into the database."
     )
-    sync_parser.add_argument(
+    parser.add_argument(
         "--store", type=Path, help=f"JSONL store to append to. Defaults to {STORE}."
     )
-    sync_parser.add_argument("--db", type=Path, help="Database path.")
-    sync_parser.add_argument(
+    parser.add_argument("--db", type=Path, help="Database path.")
+    parser.add_argument(
         "--start",
         type=int,
         default=START,
@@ -152,59 +191,82 @@ def build_parser() -> argparse.ArgumentParser:
         help=f"Ask for 2**N bookmarks on the first round, doubling to 2**{LARGEST}. "
         f"Defaults to {START}.",
     )
-    sync_parser.add_argument(
+    parser.add_argument(
         "--force",
         action="store_true",
         help="Keep widening past the first round that finds nothing new.",
     )
-    sync_parser.add_argument(
+    parser.add_argument(
         "--allow-memory",
         action="store_true",
         help="Sync even when the database is :memory: and the rows will be lost.",
     )
-    sync_parser.set_defaults(func=cmd_sync)
+    parser.set_defaults(func=cmd_sync)
 
-    key_parser = sub.add_parser("keys", help="Manage the token signing key pair.")
-    key_sub = key_parser.add_subparsers(dest="keys_command", required=True)
 
-    key_init = key_sub.add_parser("init", help="Generate the key pair and JWKS.")
-    key_init.add_argument(
+def add_keys(sub: Commands) -> None:
+    parser = sub.add_parser("keys", help="Manage the token signing key pair.")
+    keys_sub = parser.add_subparsers(dest="keys_command", required=True)
+
+    init = keys_sub.add_parser("init", help="Generate the key pair and JWKS.")
+    init.add_argument(
         "--force",
         action="store_true",
         help="Replace an existing key. Invalidates every issued token.",
     )
-    key_init.set_defaults(func=cmd_keys_init)
+    init.set_defaults(func=cmd_keys_init)
 
-    key_show = key_sub.add_parser("show", help="Print the public JWKS document.")
-    key_show.set_defaults(func=cmd_keys_show)
+    show = keys_sub.add_parser("show", help="Print the public JWKS document.")
+    show.set_defaults(func=cmd_keys_show)
 
-    token_parser = sub.add_parser("token", help="Issue and inspect client tokens.")
-    token_sub = token_parser.add_subparsers(dest="token_command", required=True)
 
-    token_issue = token_sub.add_parser("issue", help="Mint a token for a client.")
-    token_issue.add_argument(
+def add_token(sub: Commands) -> None:
+    parser = sub.add_parser("token", help="Issue and inspect client tokens.")
+    token_sub = parser.add_subparsers(dest="token_command", required=True)
+
+    issue = token_sub.add_parser("issue", help="Mint a token for a client.")
+    issue.add_argument(
         "-c",
         "--client",
         required=True,
         help="Client identifier, used as the token subject (e.g. 'claude-desktop').",
     )
-    token_issue.add_argument(
+    issue.add_argument(
         "-s",
         "--scope",
         action="append",
         choices=list(scopes.ALL_SCOPES),
         help=f"Scope to grant, repeatable. Defaults to {' '.join(scopes.DEFAULT_SCOPES)}.",
     )
-    token_issue.add_argument(
+    issue.add_argument(
         "--ttl", type=int, help="Lifetime in seconds. Defaults to JWT_TOKEN_TTL."
     )
-    token_issue.set_defaults(func=cmd_token_issue)
+    issue.set_defaults(func=cmd_token_issue)
 
-    token_inspect = token_sub.add_parser(
+    inspect = token_sub.add_parser(
         "inspect", help="Verify a token and print its claims."
     )
-    token_inspect.add_argument("token")
-    token_inspect.set_defaults(func=cmd_token_inspect)
+    inspect.add_argument("token")
+    inspect.set_defaults(func=cmd_token_inspect)
+
+    listing = token_sub.add_parser(
+        "list", help="Show what has been issued, from the local record."
+    )
+    listing.set_defaults(func=cmd_token_list)
+
+
+REGISTER = (add_serve, add_migrate, add_ingest, add_sync, add_keys, add_token)
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        prog="radius",
+        description="Search your bookmarks, and serve them to agents over MCP.",
+    )
+    sub = parser.add_subparsers(title="commands", dest="command", required=True)
+
+    for register in REGISTER:
+        register(sub)
 
     return parser
 

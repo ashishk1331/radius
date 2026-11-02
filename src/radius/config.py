@@ -70,6 +70,8 @@ class Settings:
     public_key_path: Path
     jwks_path: Path
 
+    ledger_path: Path
+
     # Inline PEM, for hosts with no writable filesystem to read a key file
     # from. Takes precedence over public_key_path when set.
     public_key_pem: str | None
@@ -101,6 +103,7 @@ class Settings:
             private_key_path=_path(root, "RADIUS_PRIVATE_KEY", "keys/private.pem"),
             public_key_path=_path(root, "RADIUS_PUBLIC_KEY", "keys/public.pem"),
             jwks_path=_path(root, "RADIUS_JWKS_PATH", "public/.well-known/jwks.json"),
+            ledger_path=_path(root, "RADIUS_TOKEN_LEDGER", "keys/issued.jsonl"),
             public_key_pem=os.getenv("RADIUS_PUBLIC_KEY_PEM") or None,
             jwks_uri=os.getenv("JWKS_URI") or None,
             issuer=issuer,

@@ -84,7 +84,12 @@ database read-only.
 
 **Requirements:** Python 3.12+, [uv](https://docs.astral.sh/uv/), and a
 cookie-based bookmark export CLI you've already installed and authenticated
-(radius does not install or configure one for you).
+(radius does not install or configure one for you). `radius sync` drives the
+`twitter` CLI; anything that can write the JSON shape below works with
+`radius ingest` instead.
+
+The first ingestion downloads a 67MB embedding model to `~/.cache/huggingface`
+and embeds every tweet body. Nothing reads those vectors yet.
 
 ```bash
 # 1. Install
@@ -95,9 +100,8 @@ cp .env.example .env.local
 # 2. Generate the token signing key
 uv run radius keys init
 
-# 3. Load your bookmarks (applies the schema automatically)
-bookmark-cli bookmarks --json --all --max-pages 500 > bookmarks.json
-uv run radius ingest bookmarks.json
+# 3. Pull your bookmarks and load them (applies the schema automatically)
+uv run radius sync
 
 # 4. Mint a token for your client
 uv run radius token issue --client claude-desktop
@@ -338,10 +342,40 @@ Reloading runs a supervisor process that re-imports the app on every change, so
 pass `--no-reload` when you are running this as a long-lived service rather than
 developing against it.
 
+### `radius sync`
+
+Pulls bookmarks the store does not already hold, then loads them. Each round
+asks the `twitter` CLI for twice as many bookmarks as the last and stops once a
+round turns up nothing new, so an incremental run is one call and a backfill
+walks outwards on its own.
+
+Alongside each bookmark it stores the author's own replies continuing it, and
+the tweet it quotes with that tweet's replies. Every tweet becomes a row of its
+own; `in_reply_to_id` and `quoted_tweet_id` record how they relate.
+
+The database is opened before anything is fetched — pulling is minutes of
+sleeps and rate-limited calls, and finding out afterwards that nothing can be
+written wastes the run. A configuration resolving to `:memory:` is refused for
+the same reason.
+
+| Flag | Description |
+|---|---|
+| `--store PATH` | JSONL store to append to. Defaults to `bookmarks.jsonl` |
+| `--db PATH` | Target database, overriding `RADIUS_DB_PATH` |
+| `--start N` | Ask for `2**N` bookmarks on the first round. Defaults to `4` |
+| `--force` | Keep widening past the first round that finds nothing new |
+| `--allow-memory` | Sync even though the rows will be discarded on exit |
+
+Interrupting it is safe. The store is appended to and flushed a thread at a
+time, and a half-written line is skipped on the next run rather than stopping
+it.
+
 ### `radius ingest [FILE]`
 
-Loads bookmarks from a raw JSON export. Applies the schema first, so there is no
-separate migrate step. Defaults to `bookmarks.json` in the project root.
+Loads bookmarks from an export without pulling anything. Applies the schema
+first, so there is no separate migrate step. Defaults to `bookmarks.jsonl` in
+the project root — the store `radius sync` writes. A `.json` file is read as
+the older single-object shape instead.
 
 | Flag | Description |
 |---|---|
@@ -350,8 +384,12 @@ separate migrate step. Defaults to `bookmarks.json` in the project root.
 ### `radius migrate`
 
 Applies the schema on its own, to whichever database the configuration points
-at. Every statement is `IF NOT EXISTS`, so it is re-runnable. Prints the
-connection mode it used.
+at. Prints the connection mode it used.
+
+Re-running is safe today but not by construction: the schema ends in an
+`ALTER TABLE`, which is not idempotent, and `executescript` swallows the
+failure along with anything that follows it. Adding a statement after that
+line would silently never run on an existing database.
 
 | Flag | Description |
 |---|---|
@@ -386,6 +424,13 @@ Unknown scopes are rejected at mint time rather than silently granted.
 Verifies a token against the local public key and prints its claims. Exits
 non-zero with an explanation if the signature, issuer, audience, or expiry
 fails.
+
+### `radius token list`
+
+Shows what has been issued, read from the local record at `keys/issued.jsonl`.
+Tokens are verified by signature alone and nothing is stored server-side, so a
+token missing from this file still works and one listed here is not revoked by
+removing it.
 
 ## MCP API reference
 
@@ -632,14 +677,20 @@ stops verifying immediately. This is the blunt instrument — see
 ```sql
 authors(id PK, display_name, handle UNIQUE, avatar)
 tweets(id PK, author_id → authors.id, content, created_at,
-       in_reply_to_id → tweets.id, quoted_tweet_id → tweets.id)
+       in_reply_to_id → tweets.id, quoted_tweet_id → tweets.id,
+       embedding)
 media(id PK, tweet_id → tweets.id, link, kind, UNIQUE(tweet_id, link))
 tweets_fts  -- FTS5 index over tweets.content, kept in sync by triggers
 ```
 
-`in_reply_to_id` and `quoted_tweet_id` exist in the schema but are not yet
-populated by ingestion — they are groundwork for thread reconstruction (see
-[Roadmap](#roadmap)).
+`in_reply_to_id` and `quoted_tweet_id` are populated by ingestion. Storage is
+flat: a bookmark, a reply and a quoted tweet are all rows in `tweets`, and the
+two columns are edges between them. No query follows those edges yet, so a
+reply is returned by search as a result of its own, without its parent.
+
+`embedding` holds a 384-dimension float32 vector of the tweet body, from
+`BAAI/bge-small-en-v1.5`. Nothing reads it yet — search is still FTS5 and
+rapidfuzz (see [Roadmap](#roadmap)).
 
 libSQL is a SQLite fork and the file is a SQLite file, so the corpus stays
 queryable with ordinary tooling whenever the MCP layer is more ceremony than
@@ -651,7 +702,16 @@ sqlite3 bookmarks.db "SELECT handle, content FROM tweets JOIN authors ON author_
 
 ### Expected ingestion input
 
-`radius ingest` reads the JSON shape produced by the bookmark export CLI:
+`radius sync` writes JSONL — one tweet per line, each carrying the id of the
+tweet it answers:
+
+```jsonc
+{"id": "…", "text": "…", "createdAt": "…", "author": {…}, "in_reply_to": null}
+{"id": "…", "text": "…", "createdAt": "…", "author": {…}, "in_reply_to": "…"}
+```
+
+`radius ingest` also reads the single-object shape produced by a bookmark
+export CLI, when the file ends in `.json`:
 
 ```jsonc
 {
@@ -678,21 +738,20 @@ Additional fields in the export are ignored.
 ```bash
 crontab -e
 # every 6 hours
-0 */6 * * * cd /path/to/radius && uv run radius ingest bookmarks.json >> ~/logs/radius-sync.log 2>&1
+0 */6 * * * cd /path/to/radius && uv run radius sync >> ~/logs/radius-sync.log 2>&1
 ```
 
-Your export command belongs in the same job, writing `bookmarks.json` before
-`radius ingest` reads it. Because upserts are idempotent, overlapping pulls cost
-nothing but time.
+`radius sync` pulls and loads in one command, and upserts are idempotent, so
+overlapping runs cost nothing but time.
 
 ### Backfill
 
-Incremental sync alone will not surface bookmarks saved before you started. Run
-one full pull by hand before enabling cron:
+An incremental run stops at the first round that finds nothing new, which will
+not reach bookmarks saved before you started. `--force` keeps widening the
+window instead:
 
 ```bash
-bookmark-cli bookmarks --json --all --max-pages 500 > bookmarks.json
-uv run radius ingest bookmarks.json
+uv run radius sync --force
 ```
 
 ### Backup

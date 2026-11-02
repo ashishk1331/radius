@@ -29,6 +29,9 @@ from `1.0.0` on, breaking any of them requires a major bump.
 - `RADIUS_DB_PATH=:memory:` keeps the local fallback in RAM. libSQL gives each
   connection its own in-memory database, so this one is opened once and reused
   for the life of the process rather than reopened per call.
+- `radius token list` — show what has been issued, read from a local record at
+  `keys/issued.jsonl`. `radius token issue` records every mint; tokens remain
+  self-contained and are still verified by signature alone.
 
 ### Changed
 
