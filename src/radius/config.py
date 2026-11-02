@@ -13,6 +13,10 @@ from dotenv import load_dotenv
 
 PACKAGE_ROOT = Path(__file__).resolve().parent
 
+# RADIUS_DB_PATH set to this keeps the local fallback in RAM — see
+# radius.db.connection for why that connection is opened once and reused.
+MEMORY = ":memory:"
+
 
 def project_root() -> Path:
     """Where the data and key files live.
@@ -39,7 +43,11 @@ def _load_env_files(root: Path) -> str:
 
 
 def _path(root: Path, var: str, default: str) -> Path:
-    value = Path(os.getenv(var, default)).expanduser()
+    raw = os.getenv(var, default)
+    if raw == MEMORY:  # not a location on disk, so nothing to resolve
+        return Path(raw)
+
+    value = Path(raw).expanduser()
     return value if value.is_absolute() else root / value
 
 
@@ -61,6 +69,8 @@ class Settings:
     private_key_path: Path
     public_key_path: Path
     jwks_path: Path
+
+    ledger_path: Path
 
     # Inline PEM, for hosts with no writable filesystem to read a key file
     # from. Takes precedence over public_key_path when set.
@@ -93,6 +103,7 @@ class Settings:
             private_key_path=_path(root, "RADIUS_PRIVATE_KEY", "keys/private.pem"),
             public_key_path=_path(root, "RADIUS_PUBLIC_KEY", "keys/public.pem"),
             jwks_path=_path(root, "RADIUS_JWKS_PATH", "public/.well-known/jwks.json"),
+            ledger_path=_path(root, "RADIUS_TOKEN_LEDGER", "keys/issued.jsonl"),
             public_key_pem=os.getenv("RADIUS_PUBLIC_KEY_PEM") or None,
             jwks_uri=os.getenv("JWKS_URI") or None,
             issuer=issuer,

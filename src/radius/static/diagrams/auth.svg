@@ -1,0 +1,39 @@
+<svg viewBox="0 0 776 198" role="img"
+     aria-label="radius token issue signs a token with keys/private.pem. A client presents that token as a bearer JWT to the MCP server, which verifies it against keys/public.pem — the other half of the same key pair — and then checks require_scopes for the tool being called.">
+  <defs>
+    <marker id="ah-auth" viewBox="0 0 8 8" refX="7.5" refY="4"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="head" d="M0 0 L8 4 L0 8 Z"/>
+    </marker>
+  </defs>
+
+  <line class="edge" x1="174" y1="37" x2="617" y2="37" marker-end="url(#ah-auth)"/>
+  <line class="edge" x1="87" y1="101" x2="300" y2="101" marker-end="url(#ah-auth)"/>
+  <line class="edge" x1="350" y1="101" x2="617" y2="101" marker-end="url(#ah-auth)"/>
+  <line class="edge" x1="325" y1="118" x2="325" y2="148" marker-end="url(#ah-auth)"/>
+  <line class="edge pair" x1="640" y1="54" x2="640" y2="84"/>
+
+  <text class="lbl" x="395" y="29" text-anchor="middle">signs with</text>
+  <text class="lbl" x="193" y="93" text-anchor="middle">Bearer JWT</text>
+  <text class="lbl" x="483" y="93" text-anchor="middle">verifies against</text>
+  <text class="lbl" x="337" y="137">then, per tool</text>
+  <text class="lbl" x="652" y="73">one key pair</text>
+
+  <rect class="box" x="16" y="20" width="158" height="34" rx="17"/>
+  <text x="95" y="41" text-anchor="middle">radius token issue</text>
+
+  <rect class="box" x="617" y="20" width="143" height="34" rx="17"/>
+  <text x="688" y="41" text-anchor="middle">keys/private.pem</text>
+
+  <rect class="box" x="16" y="84" width="71" height="34" rx="17"/>
+  <text x="51" y="105" text-anchor="middle">client</text>
+
+  <rect class="box key" x="300" y="84" width="50" height="34" rx="17"/>
+  <text x="325" y="105" text-anchor="middle">MCP</text>
+
+  <rect class="box" x="617" y="84" width="136" height="34" rx="17"/>
+  <text x="685" y="105" text-anchor="middle">keys/public.pem</text>
+
+  <rect class="box" x="300" y="148" width="194" height="34" rx="17"/>
+  <text x="397" y="169" text-anchor="middle">require_scopes per tool</text>
+</svg>

@@ -6,9 +6,11 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "cryptography>=44.0.0",
+    "fastembed>=0.8.0",
     "fastmcp>=3.4.4",
     "joserfc>=1.0.0",
     "libsql>=0.1.11",
+    "numpy>=2.5.1",
     "python-dotenv>=1.2.2",
     "rapidfuzz>=3.14.5",
 ]

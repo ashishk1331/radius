@@ -50,3 +50,5 @@ END;
 
 -- Auth is stateless: clients present RS256 JWTs signed by the local key pair
 -- (see src/radius/auth), so no credentials are stored in the database.
+
+ALTER TABLE tweets ADD COLUMN embedding BLOB;

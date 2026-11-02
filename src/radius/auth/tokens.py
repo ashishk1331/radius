@@ -11,13 +11,19 @@ from radius.auth import scopes as scopes_module
 from radius.config import Settings, settings
 
 
-def issue(
+def mint(
     subject: str,
     scopes: list[str] | None = None,
     ttl: int | None = None,
     config: Settings | None = None,
-) -> str:
-    """Sign a token for ``subject`` (a client name, e.g. "claude-desktop")."""
+) -> tuple[str, dict]:
+    """Sign a token and hand back the claims it was signed with.
+
+    Callers that want to record what they issued take them from here rather
+    than decoding the token again — a lapsed or otherwise unacceptable token
+    still has to be reportable, and re-verifying one just to describe it would
+    make bookkeeping fail exactly when it matters.
+    """
     config = config or settings()
     granted = scopes_module.validate(list(scopes or scopes_module.DEFAULT_SCOPES))
     lifetime = ttl if ttl is not None else config.token_ttl
@@ -35,7 +41,18 @@ def issue(
         "scope": " ".join(granted),
     }
 
-    return jwt.encode({"alg": keys.ALGORITHM, "kid": keys.key_id(key)}, claims, key)
+    token = jwt.encode({"alg": keys.ALGORITHM, "kid": keys.key_id(key)}, claims, key)
+    return token, claims
+
+
+def issue(
+    subject: str,
+    scopes: list[str] | None = None,
+    ttl: int | None = None,
+    config: Settings | None = None,
+) -> str:
+    """Sign a token for ``subject`` (a client name, e.g. "claude-desktop")."""
+    return mint(subject, scopes, ttl, config)[0]
 
 
 def inspect(token: str, config: Settings | None = None) -> dict:

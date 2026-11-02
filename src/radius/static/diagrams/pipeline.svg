@@ -1,0 +1,39 @@
+<svg viewBox="0 0 776 78" role="img"
+     aria-label="A bookmark is exported into ingestion, upserted into Turso with FTS5, read by search, which returns top-k rows to the MCP server, the only stage the agent talks to.">
+  <defs>
+    <marker id="ah-flow" viewBox="0 0 8 8" refX="7.5" refY="4"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="head" d="M0 0 L8 4 L0 8 Z"/>
+    </marker>
+  </defs>
+
+  <line class="edge" x1="102" y1="39" x2="162" y2="39" marker-end="url(#ah-flow)"/>
+  <line class="edge" x1="255" y1="39" x2="315" y2="39" marker-end="url(#ah-flow)"/>
+  <line class="edge" x1="429" y1="39" x2="475" y2="39" marker-end="url(#ah-flow)"/>
+  <line class="edge" x1="546" y1="39" x2="599" y2="39" marker-end="url(#ah-flow)"/>
+  <line class="edge" x1="649" y1="39" x2="695" y2="39" marker-end="url(#ah-flow)"/>
+
+  <text class="lbl" x="132" y="31" text-anchor="middle">export</text>
+  <text class="lbl" x="285" y="31" text-anchor="middle">upsert</text>
+  <text class="lbl" x="452" y="31" text-anchor="middle">rows</text>
+  <text class="lbl" x="572" y="31" text-anchor="middle">top-k</text>
+  <text class="lbl" x="672" y="31" text-anchor="middle">auth</text>
+
+  <rect class="box" x="16" y="22" width="86" height="34" rx="17"/>
+  <text x="59" y="43" text-anchor="middle">bookmark</text>
+
+  <rect class="box" x="162" y="22" width="93" height="34" rx="17"/>
+  <text x="208" y="43" text-anchor="middle">ingestion</text>
+
+  <rect class="box" x="315" y="22" width="114" height="34" rx="17"/>
+  <text x="372" y="43" text-anchor="middle">Turso<tspan class="soft"> · FTS5</tspan></text>
+
+  <rect class="box" x="475" y="22" width="71" height="34" rx="17"/>
+  <text x="510" y="43" text-anchor="middle">search</text>
+
+  <rect class="box key" x="599" y="22" width="50" height="34" rx="17"/>
+  <text x="624" y="43" text-anchor="middle">MCP</text>
+
+  <rect class="box" x="695" y="22" width="64" height="34" rx="17"/>
+  <text x="727" y="43" text-anchor="middle">agent</text>
+</svg>

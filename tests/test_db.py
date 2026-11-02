@@ -3,7 +3,7 @@
 import pytest
 
 from radius.config import Settings
-from radius.db import SEARCH_EXACT, SELECT_ALL, connect, mode
+from radius.db import QUERIES, SEARCH_EXACT, SELECT_ALL, connect, mode
 from radius.db import query as run_query
 from radius.search import FUZZY_THRESHOLD, rank_fuzzy
 
@@ -12,9 +12,22 @@ def variant(config: Settings, **overrides) -> Settings:
     return Settings(**{**config.__dict__, **overrides})
 
 
-def test_mode_is_local_without_a_turso_url(config: Settings):
+def test_mode_is_local_for_a_file_without_a_turso_url(config: Settings):
     """The local file is a test/offline fallback, not a second home for data."""
-    assert mode(config) == "local"
+    on_disk = variant(config, db_path=config.root / "bookmarks.db")
+
+    assert mode(on_disk) == "local"
+
+
+def test_mode_is_memory_when_the_db_path_is_the_memory_marker(config: Settings):
+    assert mode(config) == "memory"
+
+
+def test_a_turso_url_outranks_an_in_memory_db_path(config: Settings):
+    """`connect` checks the URL first, so the mode has to agree with it."""
+    remote = variant(config, turso_url="libsql://db.turso.io")
+
+    assert mode(remote) == "remote"
 
 
 def test_a_turso_url_means_remote(config: Settings):
@@ -64,8 +77,6 @@ def test_fuzzy_returns_nothing_below_threshold():
 
 
 def test_connection_rolls_back_on_error(seeded_config: Settings):
-    from radius.db import QUERIES
-
     with pytest.raises(RuntimeError), connect(config=seeded_config) as con:
         con.execute(
             QUERIES["UPSERT"]["TWEET"],
@@ -81,8 +92,6 @@ def test_connection_rolls_back_on_error(seeded_config: Settings):
 
 def test_migrate_reports_turso_as_the_target_when_configured(config: Settings):
     """The reported target is the database of record, not a local path."""
-    from radius.db.connection import mode
-
     remote = variant(config, turso_url="libsql://db.turso.io")
 
     assert mode(remote) == "remote"
